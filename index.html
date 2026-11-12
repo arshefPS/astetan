@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10171d">
+  <title>أثر | مرصد جغرافي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8eff2;
+      --muted: #a1b0b5;
+      --quiet: #718189;
+      --surface: #171f27;
+      --surface-raised: #202b35;
+      --line: #34414c;
+      --ground: #10171d;
+      --acid: #55d5c7;
+      --copper: #f0b16d;
+      --blue: #91aff0;
+      --red: #ed817b;
+      --radius: 8px;
+      font-family: "IBM Plex Sans Arabic", sans-serif;
+      background: var(--ground);
+      color: var(--ink);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      background-color: var(--ground);
+      background-image: radial-gradient(ellipse at 72% -20%, #1d3338 0, transparent 45%), linear-gradient(135deg, transparent 60%, #17232b 100%);
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+    a { color: inherit; }
+    .shell { width: min(1500px, calc(100% - 64px)); margin-inline: auto; }
+    .topbar { border-bottom: 1px solid #ffffff12; background: #10171ddf; }
+    .topbar-inner { min-height: 76px; display: flex; align-items: center; gap: 32px; }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex: 0 0 auto; }
+    .brand-logo { width: 42px; height: 38px; flex: 0 0 auto; overflow: visible; }
+    .brand-name { font-weight: 700; font-size: 19px; line-height: 1.2; }
+    .brand-caption { display: block; color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; }
+    .main-nav { display: flex; align-items: stretch; align-self: stretch; gap: 6px; }
+    .nav-link { position: relative; display: inline-flex; align-items: center; padding: 0 15px; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; transition: color .2s ease; }
+    .nav-link:hover, .nav-link.active { color: var(--ink); }
+    .nav-link.active::after { position: absolute; inset-inline: 14px; bottom: -1px; height: 2px; background: var(--acid); content: ""; }
+    .header-status { display: flex; align-items: center; gap: 9px; margin-inline-start: auto; color: var(--muted); font-size: 12px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 12px #55d5c77a; }
+
+    main { padding-block: 34px 64px; }
+    .page-view { animation: appear .35s ease both; }
+    @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .section-kicker { display: flex; align-items: center; gap: 10px; color: var(--acid); font-family: "Space Mono", monospace; font-size: 10px; direction: ltr; letter-spacing: 0; }
+    .section-kicker::before { width: 22px; height: 1px; background: currentColor; content: ""; }
+    .intro-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 23px; }
+    .intro-copy { min-width: 0; max-width: 430px; }
+    h1, h2, h3, p { margin-top: 0; }
+    .intro-row h1, .page-heading h1 { margin: 8px 0 0; font-size: clamp(24px, 3vw, 36px); line-height: 1.35; font-weight: 600; }
+    .intro-note { max-width: 400px; margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+    .stats { display: grid; flex: 0 0 auto; grid-template-columns: repeat(3, minmax(112px, 1fr)); gap: 8px; margin: 0; }
+    .stat { display: flex; min-width: 0; min-height: 86px; flex-direction: column; justify-content: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; background: #171f27b8; }
+    .stat-label { display: block; color: var(--muted); font-size: 10px; }
+    .stat-value { display: flex; align-items: baseline; gap: 6px; margin-top: 3px; font-family: "Space Mono", monospace; font-size: 19px; direction: ltr; font-variant-numeric: tabular-nums; unicode-bidi: isolate; justify-content: flex-end; }
+    .stat-value.date-value { direction: rtl; }
+    .stat-value small { color: var(--quiet); font-family: "IBM Plex Sans Arabic", sans-serif; font-size: 10px; }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, .82fr); gap: 14px; align-items: stretch; }
+    .map-panel, .feed-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .panel-head { min-height: 58px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+    .panel-title { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 13px; font-weight: 600; }
+    .panel-title-mark { width: 7px; height: 7px; border: 1px solid var(--acid); transform: rotate(45deg); }
+    .map-meta { color: var(--muted); font-family: "Space Mono", monospace; font-size: 10px; direction: ltr; }
+    #map { height: 462px; min-height: 340px; background: #d0d1c7; }
+    .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.72) saturate(.55) contrast(.85); }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--acid); }
+    .legend-dot.orange { background: var(--copper); }
+    .legend-dot.blue { background: var(--blue); }
+    .leaflet-container { font-family: "IBM Plex Sans Arabic", sans-serif; }
+    .leaflet-control-attribution { font-size: 9px !important; }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #171f27; color: var(--ink); }
+    .leaflet-popup-content { margin: 12px 15px; font-size: 12px; line-height: 1.8; }
+    .leaflet-popup-content strong { display: block; color: var(--acid); font-size: 13px; }
+    .leaflet-popup-content button { margin-top: 5px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-raised); cursor: pointer; font-size: 11px; }
+    .leaflet-popup-content button:hover { border-color: var(--acid); }
+    .custom-marker { width: 19px; height: 19px; display: grid; place-items: center; border: 1px solid #10171d; border-radius: 50%; background: var(--acid); box-shadow: 0 0 0 4px #55d5c735, 0 0 18px #55d5c775; }
+    .custom-marker span { width: 5px; height: 5px; border-radius: 50%; background: #10171d; }
+    .custom-marker.category-field { background: var(--copper); box-shadow: 0 0 0 4px #f0b16d35, 0 0 18px #f0b16d75; }
+    .custom-marker.category-document { background: var(--blue); box-shadow: 0 0 0 4px #91aff035, 0 0 18px #91aff075; }
+
+    .feed-panel { display: flex; flex-direction: column; }
+    .feed-tools { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 12px; border-bottom: 1px solid var(--line); }
+    .search-wrap { position: relative; min-width: 0; }
+    .search-wrap::before { position: absolute; inset-inline-start: 11px; top: 50%; color: var(--quiet); content: "⌕"; font-size: 20px; transform: translateY(-54%); }
+    .search-input, .province-select { width: 100%; height: 38px; padding: 0 11px; border: 1px solid var(--line); border-radius: 4px; background: #111a21; color: var(--ink); font-size: 11px; }
+    .search-input { padding-inline-start: 34px; }
+    .province-select { width: auto; min-width: 115px; }
+    .search-input::placeholder { color: var(--quiet); }
+    .article-list { flex: 1; max-height: 457px; overflow: auto; scrollbar-color: #465448 transparent; scrollbar-width: thin; }
+    .article-card { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 11px; width: 100%; padding: 12px; border: 0; border-bottom: 1px solid #ffffff10; background: transparent; text-align: right; cursor: pointer; transition: background .18s ease; }
+    .article-card:hover, .article-card:focus-visible { background: #ffffff08; }
+    .article-thumb { width: 78px; height: 72px; border-radius: 4px; object-fit: cover; background: var(--surface-raised); }
+    .article-card-content { min-width: 0; align-self: center; }
+    .article-meta { display: flex; flex-wrap: wrap; gap: 6px 9px; margin-bottom: 5px; color: var(--muted); font-size: 9px; }
+    .article-tag { color: var(--acid); }
+    .article-card-title { display: block; overflow: hidden; margin: 0 0 4px; font-size: 12px; line-height: 1.7; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .article-card-summary { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .empty-state { padding: 28px 16px; color: var(--muted); text-align: center; font-size: 12px; }
+    .feed-foot { padding: 10px 13px; border-top: 1px solid var(--line); color: var(--quiet); font-size: 9px; }
+    .reports { margin-top: 50px; }
+    .subsection-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 15px; }
+    .subsection-head h2 { margin: 7px 0 0; font-size: 21px; font-weight: 600; }
+    .subsection-head p { margin: 0; color: var(--muted); font-size: 11px; }
+    .report-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+    .report-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: border-color .2s, transform .2s; }
+    .report-card:hover { border-color: #75866e; transform: translateY(-2px); }
+    .report-image-wrap { position: relative; height: 178px; background: var(--surface-raised); }
+    .report-image { width: 100%; height: 100%; object-fit: cover; opacity: .85; transition: opacity .2s; }
+    .report-card:hover .report-image { opacity: 1; }
+    .report-index { position: absolute; inset-inline-start: 12px; top: 12px; padding: 4px 7px; border: 1px solid #ffffff55; background: #10171db8; color: var(--ink); font-family: "Space Mono", monospace; font-size: 9px; direction: ltr; }
+    .report-body { padding: 13px 14px 15px; }
+    .report-body h3 { margin: 6px 0; font-size: 14px; line-height: 1.7; }
+    .report-body p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.8; }
+    .report-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 13px; color: var(--quiet); font-size: 10px; }
+    .read-label { color: var(--acid); }
+
+    .page-heading { margin-bottom: 27px; }
+    .page-heading > p { max-width: 600px; margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+    .governorate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .governorate-item { position: relative; display: flex; min-height: 142px; flex-direction: column; justify-content: center; align-items: flex-start; gap: 13px; overflow: hidden; padding: 22px 24px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(115deg, #171f27 35%, #1d2b32); text-align: right; cursor: pointer; transition: border-color .2s, background .2s, transform .2s, box-shadow .2s; }
+    .governorate-item::before { position: absolute; inset-block: 20px; inset-inline-start: 0; width: 3px; background: var(--acid); content: ""; transform: scaleY(.35); transform-origin: center; transition: transform .2s; }
+    .governorate-item::after { position: absolute; inset-inline-end: 24px; top: 50%; color: var(--acid); content: "←"; font-size: 21px; transform: translateY(-50%); transition: transform .2s; }
+    .governorate-item:hover, .governorate-item:focus-visible { border-color: var(--acid); background: linear-gradient(115deg, #1b292f, #24363b); box-shadow: 0 9px 24px #0003; transform: translateY(-3px); }
+    .governorate-item:hover::before, .governorate-item:focus-visible::before { transform: scaleY(1); }
+    .governorate-item:hover::after, .governorate-item:focus-visible::after { transform: translate(-4px, -50%); }
+    .governorate-item:active { transform: translateY(-1px); }
+    .governorate-item strong { max-width: calc(100% - 34px); font-size: 17px; line-height: 1.7; font-weight: 600; }
+    .governorate-item span { padding: 5px 9px; border: 1px solid #55d5c744; border-radius: 3px; background: #55d5c710; color: var(--acid); font-family: "Space Mono", monospace; font-size: 11px; direction: ltr; }
+    .directory-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 12px; }
+    .directory-back:hover { border-color: var(--acid); color: var(--ink); }
+    .directory-note { margin: -12px 0 18px; color: var(--muted); font-size: 11px; line-height: 1.8; }
+    .directory-item-copy { display: grid; gap: 4px; text-align: right; }
+    .directory-item-copy small { color: var(--muted); font-size: 10px; line-height: 1.6; }
+
+    .about-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); gap: 14px; }
+    .about-block { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .about-block h2 { margin: 0 0 12px; font-size: 17px; }
+    .about-block p { margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 2; }
+    .method-list { display: grid; gap: 0; margin-top: 14px; }
+    .method-row { display: flex; gap: 13px; padding: 12px 0; border-top: 1px solid var(--line); }
+    .method-no { color: var(--acid); font-family: "Space Mono", monospace; font-size: 11px; direction: ltr; }
+    .method-row p { margin: 0; font-size: 12px; }
+    .notice { margin-top: 14px; padding: 14px 16px; border-inline-start: 2px solid var(--copper); background: #f0b16d0c; color: var(--muted); font-size: 11px; line-height: 1.9; }
+
+    .modal { position: fixed; z-index: 1000; inset: 0; display: none; place-items: center; padding: 24px; background: #090d0be8; backdrop-filter: blur(8px); }
+    .modal.open { display: grid; animation: appear .2s ease both; }
+    .modal-dialog { position: relative; width: min(820px, 100%); max-height: min(90vh, 900px); overflow: auto; border: 1px solid #455247; border-radius: var(--radius); background: var(--surface); scrollbar-color: #465448 transparent; scrollbar-width: thin; }
+    .modal-close { position: absolute; z-index: 2; inset-inline-start: 14px; top: 14px; width: 36px; height: 36px; border: 1px solid #ffffff5a; border-radius: 50%; background: #10171dd9; font-size: 20px; cursor: pointer; }
+    .modal-media { display: block; width: 100%; max-height: 420px; aspect-ratio: 16 / 8; object-fit: cover; background: #0c100e; }
+    .modal-gallery { background: #0c100e; }
+    .gallery-stage { position: relative; }
+    .gallery-image { width: 100%; }
+    .gallery-arrow { position: absolute; top: 50%; display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid #ffffff75; border-radius: 50%; background: #10171dcf; color: var(--ink); font-size: 22px; cursor: pointer; transform: translateY(-50%); }
+    .gallery-arrow:hover { border-color: var(--acid); background: #10171df2; }
+    .gallery-previous { inset-inline-start: 14px; }
+    .gallery-next { inset-inline-end: 14px; }
+    .gallery-toolbar { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; padding: 6px 12px; }
+    .gallery-dot { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: #718189; cursor: pointer; }
+    .gallery-dot.active { background: var(--acid); }
+    .gallery-counter { margin-inline-start: auto; color: var(--muted); font-family: "Space Mono", monospace; font-size: 10px; direction: ltr; }
+    .modal-video { margin-top: 8px; }
+    .modal-content { padding: 22px 25px 27px; }
+    .modal-content h2 { margin: 8px 0 11px; font-size: clamp(20px, 3vw, 28px); line-height: 1.5; }
+    .modal-description { color: #c0c8bb; font-size: 14px; line-height: 2.1; white-space: pre-line; }
+    .modal-location { display: flex; flex-wrap: wrap; gap: 8px 17px; padding-top: 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    footer { padding-block: 20px; border-top: 1px solid #ffffff12; color: var(--quiet); font-size: 10px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 15px; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 900px) {
+      .shell { width: min(100% - 36px, 720px); }
+      .topbar-inner { min-height: 68px; gap: 16px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .intro-row { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; }
+      .intro-copy { max-width: none; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+      .stat { min-height: 78px; padding: 8px 10px; }
+      #map { height: 420px; }
+      .article-list { max-height: 340px; }
+      .report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .governorate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .shell { width: calc(100% - 28px); }
+      .topbar-inner { min-height: 62px; flex-wrap: wrap; gap: 0; padding-top: 11px; }
+      .brand { margin-inline-end: auto; }
+      .brand-logo { width: 36px; height: 33px; }
+      .brand-name { font-size: 16px; }
+      .header-status { margin-inline-start: 0; font-size: 10px; }
+      .main-nav { order: 3; width: 100%; height: 43px; margin-top: 8px; border-top: 1px solid #ffffff10; }
+      .nav-link { flex: 1; justify-content: center; padding-inline: 7px; font-size: 12px; }
+      .nav-link.active::after { inset-inline: 22%; }
+      main { padding-top: 24px; }
+      .intro-row { display: block; }
+      .intro-note { margin-top: 8px; font-size: 12px; }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .stat { min-width: 0; padding: 8px; }
+      .stat-label { font-size: 9px; }
+      .stat-value { font-size: 16px; }
+      .panel-head { padding-inline: 12px; }
+      #map { height: 350px; min-height: 300px; }
+      .feed-tools { grid-template-columns: minmax(0, 1fr) 110px; padding: 9px; }
+      .province-select { min-width: 0; width: 100%; }
+      .report-grid { grid-template-columns: minmax(0, 1fr); }
+      .report-image-wrap { height: 200px; }
+      .reports { margin-top: 36px; }
+      .subsection-head { align-items: start; flex-direction: column; }
+      .governorate-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+      .governorate-item { min-height: 116px; padding: 18px 20px; }
+      .governorate-item::after { inset-inline-end: 20px; }
+      .governorate-item strong { font-size: 16px; }
+      .about-grid { grid-template-columns: minmax(0, 1fr); }
+      .about-block { padding: 18px; }
+      .modal { padding: 12px; }
+      .modal-content { padding: 18px 16px 22px; }
+      .modal-media { aspect-ratio: 4 / 3; }
+      .gallery-arrow { width: 34px; height: 34px; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="#home" aria-label="أثر، الصفحة الرئيسية">
+        <svg class="brand-logo" viewBox="0 0 68 52" aria-hidden="true" focusable="false">
+          <path d="M5 13 14 8v36l-9 4z" fill="#547a75"></path>
+          <path d="M19 4 39 10v9l-8 4v24l-12 4z" fill="#789a95"></path>
+          <path d="M41 16 57 9v35l-16 5z" fill="#5f827d"></path>
+          <path d="M59 1c-3.4 0-6 2.6-6 6 0 3 3.4 5.3 6 6 2.6-.7 6-3 6-6 0-3.4-2.6-6-6-6z" fill="#55d5c7"></path>
+          <circle cx="59" cy="6.3" r="1.5" fill="#10171d"></circle>
+        </svg>
+        <span class="brand-name">أثر<span class="brand-caption">أرشيف الاستيطان والتهويد</span></span>
+      </a>
+      <nav class="main-nav" aria-label="التنقل الرئيسي">
+        <button class="nav-link active" type="button" data-view="home">الرئيسية</button>
+        <button class="nav-link" type="button" data-view="governorates">المحافظات</button>
+        <button class="nav-link" type="button" data-view="about">حول</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="page-view" id="home-view">
+      <div class="intro-row">
+        <div class="intro-copy">
+          <div class="section-kicker">FIELD NOTES / 01</div>
+          <h1>المرصد الجغرافي</h1>
+          <p class="intro-note">محاولة لتوثيق كل موقع أو عقار يسيطر عليه المستوطنون، بكتابة قصته، تاريخه، وآلية الاحتلال في السيطرة عليه، لنساهم في حفظ هوية بلادنا </p>
+        </div>
+        <div class="stats" aria-label="إحصاءات الملفات">
+          <div class="stat"><span class="stat-label">ملفات منشورة</span><span class="stat-value" id="stat-articles">00</span></div>
+          <div class="stat"><span class="stat-label">محافظات ممثلة</span><span class="stat-value" id="stat-governorates">00</span></div>
+          <div class="stat"><span class="stat-label">تاريخ العرض</span><span class="stat-value date-value" id="stat-date">--</span></div>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <section class="map-panel" aria-label="الخريطة التفاعلية">
+          <div class="panel-head">
+            <h2 class="panel-title"><span class="panel-title-mark"></span>خريطة تفاعلية</h2>
+            <span class="map-meta"> The West Bank / 31.95°N 35.22°E</span>
+          </div>
+          <div id="map" role="application" aria-label="خريطة تفاعلية لمواقع الملفات"></div>
+          <div class="map-legend" aria-label="مفتاح الخريطة">
+            <span class="legend-item"><span class="legend-dot"></span>رصد مكاني</span>
+            <span class="legend-item"><span class="legend-dot orange"></span>ميدان</span>
+            <span class="legend-item"><span class="legend-dot blue"></span>وثائق مفتوحة</span>
+          </div>
+        </section>
+
+        <aside class="feed-panel" aria-label="قائمة الملفات">
+          <div class="panel-head">
+            <h2 class="panel-title"><span class="panel-title-mark"></span>ملفات الرصد</h2>
+            <span class="map-meta" id="visible-count">00 / 00</span>
+          </div>
+          <div class="feed-tools">
+            <label class="search-wrap"><span hidden>بحث في الملفات</span><input class="search-input" id="search" type="search" placeholder="ابحث في الملفات" autocomplete="off"></label>
+            <label><span hidden>اختر المحافظة</span><select class="province-select" id="province-filter"><option value="all">كل المحافظات</option></select></label>
+          </div>
+          <div class="article-list" id="article-list"></div>
+        </aside>
+      </div>
+
+      <section class="reports" aria-labelledby="reports-title">
+        <div class="subsection-head">
+          <div><div class="section-kicker">THE DOSSIERS</div><h2 id="reports-title">من ملفاتنا</h2></div>
+        </div>
+        <div class="report-grid" id="report-grid"></div>
+      </section>
+    </section>
+
+    <section class="page-view" id="governorates-view" hidden>
+      <div id="governorates-index">
+        <div class="page-heading">
+          <div class="section-kicker">REGIONAL INDEX / 02</div>
+          <h1>المحافظات</h1>
+          <p>اختر الحالة، ثم المحافظة لعرض التقارير المنشورة عنها.</p>
+        </div>
+        <div class="governorate-grid" id="governorate-grid"></div>
+      </div>
+      <div id="governorate-browser" hidden>
+        <button class="directory-back" id="directory-back" type="button">→ <span>العودة إلى المحافظات</span></button>
+        <div class="page-heading">
+          <div class="section-kicker" id="directory-kicker">SITE INDEX / 02</div>
+          <h1 id="directory-title"></h1>
+          <p id="directory-description"></p>
+        </div>
+        <div class="governorate-grid" id="directory-grid"></div>
+      </div>
+    </section>
+
+    <section class="page-view" id="about-view" hidden>
+      <div class="page-heading">
+        <div class="section-kicker">ABOUT THE PROJECT / 03</div>
+        <h1>حول أثر</h1>
+        <p>واجهة تحريرية لربط الملفات المفتوحة بمواقعها الجغرافية، مع إبقاء الإشارة إلى المصدر والسياق جزءاً من كل ملف.</p>
+      </div>
+      <div class="about-grid">
+        <article class="about-block">
+          <h2>أثر</h2>
+          <p>أرشيف الاستيطان والتهويد</p>
+          <div class="method-list">
+            <div class="method-row"><span class="method-no">*</span><p>مع توسع المشروع الاستيطاني والتهامه الكثير من أراضينا وبيوتنا ومواقعنا الأثرية بما يهدد هوية بلادنا</p></div>
+            <div class="method-row"><span class="method-no">*</span><p>تبرز  أهمية رصد وتوثيق هذه الهجمة الاستيطانية لتبقى شاهدا على هوية هذه الأرض أمام الأجيال القادمة</p></div>
+          </div>
+        </article>
+        <article class="about-block">
+          <h2>أرشيف الاستيطان والتهويد</h2>
+          <p> هو محاولة متواضعة على هذا الطريق بحيث نحاول وعبر الاستعانة بأهلنا على الأرض لتوثيق كل موقع أو عقار يسيطر عليه المستوطنون</p>
+          <div class="notice"> بكتابة قصته وتاريخه وآلية الاحتلال في السيطرة عليه الاحتلال لنساهم في حفظ هوية بلادنا في وجه الهجمة الاستيطانية التهويدية</div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell footer-inner"><span>أثر · مرصد جغرافي</span><span>توثيق كل موقع أو عقار يسيطر عليه المستوطنون</span></div></footer>
+
+  <div class="modal" id="article-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <article class="modal-dialog">
+      <button class="modal-close" id="modal-close" type="button" aria-label="إغلاق">×</button>
+      <div id="modal-media-container"></div>
+      <div class="modal-content">
+        <div class="article-meta" id="modal-meta"></div>
+        <h2 id="modal-title"></h2>
+        <p class="modal-description" id="modal-description"></p>
+        <div class="modal-location" id="modal-location"></div>
+      </div>
+    </article>
+  </div>
+
+<!--
+id: "معرّف فريد لكل عنصر",
+title: "عنوان الموضوع",
+governorate: "اسم المحافظة",
+place: "اسم الموقع أو المنطقة بالتحديد",
+city: "اسم المدينة",
+site: "رابط الموقع الإلكتروني أو صفحة المكان (اختياري)",
+status: "حالة العنصر",
+category: "او تم السيطرة تمهيد للسيطرة التصنيف الرئيسي (رصد / مكاني-ميداني-وثائق مفتوحة)",
+categoryType: "نوع التصنيف الفرعي map المواقع الجغرافية - document الوثائق والمحتوى النصي - field التوثيق وجمع البيانات ميدانيًا",
+date: "التاريخ المرتبط بالعنصر",
+coordinates: [خط العرض وخط الطول],
+image: "رابط صورة",
+video: "رابط فيديو ",
+excerpt: "نبذة قصيرة",
+body: "الوصف الكامل والتفصيلي" 
+-->
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const articles = [
+  {
+    "id": "1.1",
+    "title": "استيلاء ميداني واستهداف للموروث المعماري",
+    "governorate": "القدس",
+    "place": "القدس",
+    "city": "البلدة القديمة",
+    "site": "",
+    "status": "open",
+    "category": "رصد مكاني",
+    "categoryType": "map",
+    "date": "2026-10-12",
+    "image": "https://palinfo.com/wp-content/uploads/2026/07/1-5.jpg",
+    "video": "",
+    "excerpt": "استولى مستوطنون على عقار تاريخي لعائلة الباشا المقدسية في قلب البلدة القديمة بالقدس",
+    "body": "عقب قرار صدر عن محكمة الاحتلال قضى بإخلاء ست عائلات فلسطينية منه. وجاء هذا الإجراء حاسماً لمعركة قضائية ضارية استمرت زهاء ثمانية أعوام، بذلت خلالها العائلة جهوداً مكثفة لمواجهة أدوات التهويد والمنظومة القضائية الانحيازية. استيلاء ميداني واستهداف للموروث المعماري ويحتل عقار الباشا موقعاً استراتيجياً عند تقاطع شارعي الواد والبرقوق، ويُعد تحفة معمارية قديمة شُيدت بالحجر المقدسي الأصيل وتميزت بنوافذها وأبوابها التراثية القديمة. وتعيش عائلة الباشا في العقار وتستغله منذ قرابة قرن من الزمان، قبل أن يُجبر قاطنوه على الإخلاء القسري الأسبوع الماضي تحت ادعاءات ملكيته لليهود قبل عام 1948. وفور تنفيذ عملية الإخلاء، أقدم المستوطنون على تغيير أقفال المبنى ورفع أعلام الاحتلال على واجهته، إضافة إلى تثبيت “المزوزاه” الدينية على مداخله، في خطوة تهدف إلى فرض الواقع الجديد وتغيير الهوية المعمارية والاجتماعية الممتدة لهذا الحي السكني التراثي. الحكاية التاريخية وحفظ الأمانة وتمتد حكاية هذا العقار التاريخي إلى ثلاثينيات القرن الماضي، حيث كان الطابق العلوي من قسمه الغربي يضم كنيساً يُدعى “تراث حاييم”، وهو مؤجر اليوم لجمعية “عطيرت كوهنيم” الاستيطانية. أما الجزء الشرقي فقد عرضه صاحبه اليهودي للمزاد العلني نتيجة تراكم الديون في مطلع القرن العشرين، واشتراه المقدسي جودت عبد الغني الباشا ويتم توثيقه رسمياً في المحاكم والطابو خلال الأربعينيات. ومع اندلاع حرب عام 1948، غادر اليهود الكنيس بعد كتابة وثيقة رسمية أمّنوا بموجبها جودت الباشا على المفاتيح والكتب الدينية للحفاظ عليها حتى عودتهم. وحافظ الباشا على هذه الأمانة لعقود، غير أن الجمعيات الاستيطانية بدأت لاحقاً بالنبش في الماضي والمطالبة بإخلاء المبنى كاملاً بادعاء ملكية القسم الشرقي للحاخام “يتسحاك ڤينوچراد”. التواطؤ المؤسسي عبر “القيّم العام” تضاعفت خطورة الملف القضائي مع دخول “دائرة القيّم العام” التابعة للاحتلال كمدّعٍ رئيسي ضد 13 فرداً من عائلة الباشا وعدد من المستأجرين. وتعمل هذه الدائرة الرسمية كغطاء لخدمة الجمعيات الاستيطانية من خلال إدارة الأملاك التي يُدعى أن ملكيتها تعود ليهود إبان الانتداب البريطاني والحكم الأردني. ومهد التنسيق بين القيّم العام وجمعية “وقف بنبنيستي” اليهودية لمنح المستوطنين امتيازات وثائقية أمام المحاكم؛ إذ تُعامل الأوراق الصادرة عن الجهات الرسمية في الدولة بوصفها أدلة قاطعة ومسلم بها، مما وضع العائلات المقدسية ومحامي الدفاع في موقف يتطلب إثبات عكس ما تقدمه مؤسسات الاحتلال الرسمية. ويُشكل الاستيلاء على عقار الباشا حلقة جديدة في سلسلة التهويد الممنهج التي تستهدف تفريغ البلدة القديمة في القدس من سكانها الأصليين ومحو ذاكرتها العمرانية وتغيير ملامحها التاريخية والديموغرافية. وأمام هذا الواقع الميداني والقانوني المعقد، تظل قضية العقار شاهدة على استغلال الثغرات والقرارات القضائية لتحويل أملاك المقدسيين إلى بؤر استيطانية مغتصبة.",
+    "coordinates": [
+      31.77978,
+      35.23357
+    ]
+  },
+  {
+    "id": "2.1",
+    "title": "من معلم تاريخي إلى مقر لشرطة الاحتلال",
+    "governorate": "القدس",
+    "place": "القدس",
+    "city": "القدس",
+    "site": "المدرسة التنكزية",
+    "status": "open",
+    "category": "وثائق مفتوحة",
+    "categoryType": "document",
+    "date": "2026-09-28",
+    "coordinates": [
+      31.77732,
+      35.23433
+    ],
+    "image": "https://felesteen.news/thumb/w920/uploads/images/2022/10/waQBZ.png",
+    "video": "",
+    "excerpt": "تعد المدرسة التنكزية واحدة من أعرق معالم القدس التي تم بناؤها في العهد المملوكي",
+    "body": "تعد المدرسة التنكزية واحدة من أعرق معالم القدس التي تم بناؤها في العهد المملوكي، تحمل بين أروقتها تاريخ حقبة مهمة ونوعية في تاريخ المدينة، وقد بناها الأمير المملوكي سيف الدين تنكز الناصري وسمية المدرسة نسبت له، لكن مع احتلال القدس في عام 1967، أصبحت المدرسة تحت سيطرة الاحتلال الذي غير ملامحها بعدما أقيم فيها كنيسان يهوديان ومن ثم تم استخدامها كمقر لقوات حرس الحدود التابعة لشرطة الاحتلال، في تجاهل واضح لتاريخ وإسلامية هذه المدرسة ومحاولة تهويدها. بنيت المدرسة في العهد المملوكي عام 729 هجري، وتقع إلى الغرب من المسجد الأقصى المبارك جنوب طريق السلسلة، وضمت في وقتها مدرسة ودار للحديث ودار للصوفية، وتعتبر هذه المدرسة التي يتم تسميتها أيضاً بالمدرسة الخانقية أو رباط الخانقية شاهدة على كثير من الأحداث التاريخية، فقد قام السلطان المملوكي فرج بن برقوق بتحويل قسم منها إلى محكمة شرعية ومقر قضاة القدس عقب زيارته إلى مدينة القدس عام 815 هجري، كما اتخذ منها السلطان المملوكي قايتباي اتُخذت مقرًا للقضاء والحكم. بقيت المدرسة تؤدي مهمتها كمكان ومركز للقضاء والديوان حتى عام 1941، حيث تقرر تحويلها إلى مسكن لرئيس المجلس الإسلامي الأعلى، وبقيت تضم مدرسة الأقصى الشرعية الثانوية في القدس، ومكتب المؤتمر الإسلامي ومكان لتحفيظ القرآن الكريم والعلوم الشرعية داخل المسجد العام حتى احتلال القدس. شكل احتلال القدس محطة فارقة في تاريخها بعدما قررت سلطات الاحتلال السيطرة عليها وطرد الطلاب الشرعيين منها في عام 1969، حيث تم تحويلها إلى نقطة عسكرية لشرطة حرس الحدود لدى الاحتلال، وكان الهدف من التواجد فيها هو مراقبة المسجد الأقصى بشكل كامل، حيث ركبت أول كاميرا متحركة لمراقبة المسجد الأقصى في المدرسة التنكزية في عام 1996، لكن في الوقت الحالي تضم المدرسة أكثر من 200 كاميرا مراقبة تستخدمهم سلطات الاحتلال لمراقبة المصلين وقمعهم وإطلاق النار عليهم في الهبات والاحتجاجات، أو اعتقالهم كون هذه الكاميرات مرتبطة بمركز تحقيق (القشلة). وعلى الرغم من أنه صدر أكثر من 65 قرار من قبل منظمة الأمم المتحدة للتربية والثقافة (يونسكو) بشأن انتهاكات الاحتلال حول المواقع والمعالم الأثرية في القدس التي يجري تهويدها، لكن دولة الاحتلال لم تولي اهتمام لشيء، فقد استمرت في عملية تهويد المدرسة بعدما أجرت حفر عدة أنفاق أسفل المدرسة ضمن حفريات نفق (الحشمونائيم) الذي تم افتتاحه في عام 1996، ويتصل هذا النفق بداية من الجنوب من ساحة البراق وصولاً إلى السور الغربي للأقصى، ومن ثم إلى المدرسة العمرية شمالًا، ويتفرع منه أنفاق أخرى من الجوانب. لم تقف ممارسات الاحتلال التهويدية عند هذا الحد ففي مارس/ آذار 2006، قام رئيس دولة الاحتلال في حينها موشيه كتساف بافتتاح كنيس يهودي في أحد الأنفاق التي تم تدشينها أسفل المدرسة التنكزية، كما يضم أحد طوابق المدرسة كنيساً يهودياً يقيم فيه الحاخامات والمستوطنين المتطرفين طقوسهم وصلواتهم التلمودية بداخله باستمرار. وفي عام 2021، شرعت سلطات الاحتلال ببناء مظلة من الخشب فوق المدرسة التنكزية، جاء بناؤها كنقطة مراقبة للمصلين داخل المسجد الأقصى، حيث يتواجد بداخلها طيلة الوقت جنود الاحتلال وشرطته"
+  },
+  {
+    "id": "3.2.1",
+    "title": "المدرسة التنكزية",
+    "governorate": "القدس",
+    "place": "القدس",
+    "city": "القدس",
+    "site": "",
+    "status": "open",
+    "category": "رصد مكاني",
+    "categoryType": "map",
+    "date": "2026-10-06",
+    "image": "",
+    "video": "https://youtu.be/feAeK9BGg5I",
+    "excerpt": "تقرير مصورا حول المدرسة التنكزية",
+    "body": "نضع بين أيديكم تقريرا مصورا حول المدرسة التنكزية إحدى أعرق المدارس التاريخية داخل المسجد الأقصى المبارك، بنيت عام 1331م، على يد سيف الدين تنكز الناصري، كانت تستخدم مدرسة لتحفيظ القرآن الكريم والعلوم الشرعية داخل المسجد الأقصى، واليوم تستعمل الى ثكنة عسكرية للاحتلال الإسرائيلي تظل على المسجد الأقصى.",
+    "images": [],
+    "coordinates": [
+      31.77732,
+      35.23433
+    ]
+  },
+  {
+    "id": "4.1",
+    "title": "مستوطنون يستولون على عقار تاريخي بالبلدة القديمة بالقدس المحتلة",
+    "governorate": "القدس",
+    "place": "القدس",
+    "city": "البلدة القديمة",
+    "site": "",
+    "status": "open",
+    "category": "رصد مكاني",
+    "categoryType": "document",
+    "date": "2026-10-21",
+    "image": "https://qudsn.co/media/img/800/uploads/2018/10/21ca19b9-a36b-4fa4-b146-fcf3d5f3462e.jpg.webp",
+    "video": "",
+    "excerpt": "استولى مجموعة من المستوطنين، على عقار قديم وتاريخي في عقبة درويش\" داخل البلدة القديمة في القدس المحتلة.",
+    "body": "أفادت مصادر محلية أن مجموعة من المستوطنين استولت في ساعات باكرة من فجر الخميس على العقار وسط حماية عسكرية من قبل جنود وشرطة الاحتلال، ويعود العقار لعائلة جودة المقدسية، ويقع في منطقة حسّاسة جداً لا تبعد كثيراً عن المسجد الأقصى، وقد اُستخدم مؤخراً كعيادة طبية، أدت عملية الاستيلاء والسيطرة على العقار إلى حالة من السخط والغضب تسود المنطقة بخاصة، والقدس القديمة بشكل عام، وكان مستوطنون استولوا أمس على شقتين مساحة كل منهما 120 متراً، وقطعة أرض تزيد مساحتها عن الدونم في حي وادي حلوة ببلدة سلوان جنوب المسجد الاقصى بزعم ملكيتهم لها عن طريق الشراء.",
+    "coordinates": [
+      31.78128,
+      35.23455
+    ]
+  },
+  {
+    "id": "5.1",
+    "title": "\"عقبة درويش\" عقار قرب الأقصى سُرّب للمستوطنين.. كيف تم ذلك؟",
+    "governorate": "القدس",
+    "place": "القدس",
+    "city": "البلدة القديمة",
+    "site": "",
+    "status": "open",
+    "category": "رصد مكاني",
+    "categoryType": "field",
+    "date": "2026-10-21",
+    "image": "https://fsn1.your-objectstorage.com/qudsn/uploads/2018/10/47-1-1024x993.jpg",
+    "video": "",
+    "excerpt": "استولى مستوطنون على عقارٍ في حارة السعدية بالبلدة القديمة في القدس، وذلك بعد أقل من 24 ساعة على استيلاء جمعية \"إلعاد\" الاستيطانية على منزلٍ وقطعة أرض في بلدة سلوان",
+    "body": "استولى مستوطنون على عقارٍ في حارة السعدية بالبلدة القديمة في القدس، وذلك بعد أقل من 24 ساعة على استيلاء جمعية \"إلعاد\" الاستيطانية على منزلٍ وقطعة أرض في بلدة سلوان جنوبي الأقصى.\n\nووفق مصادر محلية في القدس، وشخصيات فلسطينية، فإن قاسمًا مشتركًا يجمع بين العقارين، وهو تسريبها لصالح المستوطنين. إذ أفادت المصادر بأن نحو 60 مستوطنًا قد اقتحموا البناء فجر الخميس وأقاموا فيه.\n\nويدور الحديث عن بناء مُكوّن من ثلاثة طوابق في عقبة درويش بحارة السعدية، قالت المصادر إنه يُفضي إلى محاور طرق لأحياء رئيسية ويطل على الأقصى، وكان يُستخدم عيادة طبية لكن تم إخلاؤها في وقت سابق.\n\nوالبناء في الأساس تعود ملكيته لعائلة جودة، لكنها باعته سابقًا للناشط الذي يقيم في الولايات المتحدة فادي السلامين، إلا أن عملية البيع فشلت في خطواتها الأخيرة، فباعت العائلة العقار لاقتصادي فلسطيني يُدعى خالد العطاري، أكدت مصادر مقدسية أنه يشتري عقارات في رام الله والبلدة القديمة.\n\nوتعود القضية إلى خمس سنوات سابقة، عندما أعلنت عائلة جودة أنها ترغب ببيع العقار، فتوجه لها فادي السلامين من أجل شرائه، وبعد الاتفاق على التفاصيل، تعطّلت عملية البيع بسبب عدم دفع السلامين الدفعة الأخيرة من ثمنه، إذ توجهت حينها عائلة جودة للقضاء من أجل إبطال البيع، وتمكنت من ذلك بالفعل.\n\nيقول السلامين إن إبطال البيع تم بتوجيه من السلطة الفلسطينية، بعد أن قررت تجميد حساباته ولم يعد قادرًا على تحويل الدفعة الأخيرة لأصحاب العقار، مضيفًا أن قرار السلطة جاء بسبب كشفه عن فسادٍ داخلها. وادعى السلامين أن السلطة هي من وجّهت عائلة جودة لرفع الدعوى ضده.\n\nوذكرت عائلة جودة أنها بعد إبطال البيع للسلامين، باعته للعطاري بعد أن سألت شخصيات فلسطينية في القدس، وسألت محافظة القدس السابق عن الرجل وتلقّت ضوءًا أخضر لبيعه باعتبار الرجل \"من أصحاب السيرة الطيبة\" كما قال أديب جودة. لكن السلامين يدّعي أن العطاري مقرب من رئيس المخابرات العامة ماجد فرج، وأنه قام بشراء المنزل بناء على توجيهاته، مضيفًا أنه يحمّل اللواء فرج والرئيس محمود عباس مسؤولية تسريب العقار.\n\nويمتنع العطاري حتى اللحظة عن الخوض في تفاصيل هذه القضية، كما يمتنع عن توضيح كيفية وصول العقار إلى المستوطنين، رغم أنه مسجلٌ باسمه في الطابو، بعد أن اشتراه مطلع السنة الجاري من عائلة جودة رسميًا.\n\nوتُعدُّ محافظة القدس طرفًا أساسيًا في الخلافات حول هذا العقار قبل تسريبه، كونها أعطت الضوء الأخضر لبيع العقار للعطاري، المتهم بتسريبه الآن، وهي أيضًا متهمة وفق الناشط كمال أبو قويدر بالتقاعس عن متابعة هذه القضية منذ بدايتها في عهد المحافظ السابق عدنان الحسيني.\n\nونشر أبو قويدر تسجيلاً صوتيًا لمكالمة أجراها مع الحسيني، يسأله فيها عن المعلومات المتناقلة - آنذاك - حول تسريب العقار، إلا أن الحسيني نفى أن يكون العقار قد تم تسريبه، وأكد أنه بيع للعطاري، مشددًا في الوقت ذاته أن العقار وقف ولا يمكن بيعه، ولكن ما تم بيعها هي حق حماية العقار.\n\nوعندما سأل أبو قويدر، الحسيني، عن العطاري وأهدافه من شراء هذه العقارات، أكد الأخير أنه لا شبهات حول الرجل، مشددًا أنه يخضع للرقابة ولا شيء يجري بعيدًا عن عيون المحافظة.\n\nويؤكد أبو قويدر، أن العطاري، \"رجلٌ مشبوه وسمسار\" وفق وصفه، وهو يملك مشاريع كبيرة في الأردن، مضيفًا أنه أبلغ جهات عديدة منذ البداية بأنه تورط في تسريب البيت، وقد تم استدعاؤه للتحقيق، لكنه نفى أن يكون قد سرّب العقار للمستوطنين، إلى أن استولى المستوطنون على البناء فجر الخميس.\n\nالحكومة الفلسطينية تعقّب من جهتها، قالت الحكومة الفلسطينية اليوم الخميس، إن استيلاء المستوطنين على بناية تاريخية في محيط المسجد الأقصى، بأنه \"عمل وحشي ومفزع\"، وتنفذه جموع المستوطنين تحت حماية عناصر جيش وحكومة الاحتلال.\n\nوأكد الناطق باسم الحكومة يوسف المحمود، على أن الاستيلاء على البناية التاريخية القديمة في عقبة درويش داخل البلدة القديمة من القدس العربية المحتلة يترافق مع الهجمة الاحتلالية الاستيطانية المسعورة على حي سلوان الملاصق للمسجد الاقصى المبارك من الجنوب وعلى سائر أحياء مدينة القدس العربية المحتلة.\n\nووفقًا للحكومة، فان هذه الهجمة التي ينفذها آخر احتلال في التاريخ تذكر أبناء شعبنا وأبناء أمتنا بما اقترفته أيدي الاحتلال خلال عهوده السابقة على مر التاريخ، وقد اندثرت جميعها ولم يظل منها سوى ذكريات سوداء بشعة يخجل منها ابناء البشرية الأحرار.\n\nوطالب المحمود، المنظمات والهيئات والمؤسسات الدولية وخصوصا منظمة اليونسكو بالتدخل لمنع الاحتلال من الاستيلاء على الموروث الحضاري العربي الأصيل في مدينة القدس العربية المحتلة، ووقفه عن العبث بهوية المدينة العربية الاسلامية المشهود لها تاريخيا والمثبّت علميا منذ فجر التاريخ.",
+    "images": [
+      "https://fsn1.your-objectstorage.com/qudsn/uploads/2018/10/47-1-1024x993.jpg",
+      "https://fsn1.your-objectstorage.com/qudsn/uploads/2018/10/46-1.jpg",
+      "https://fsn1.your-objectstorage.com/qudsn/uploads/2018/10/45.jpg"
+    ],
+    "coordinates": [
+      31.78128,
+      35.23455
+    ]
+  },
+  {
+    "id": "1.2",
+    "title": "قبر يوسف بنابلس.. صراع الروايات والوجود",
+    "governorate": "نابلس",
+    "place": "قبر يوسف",
+    "city": "نابلس",
+    "site": "",
+    "status": "closed",
+    "category": "رصد مكاني",
+    "categoryType": "map",
+    "date": "2026-10-21",
+    "image": "https://palinfo.com/wp-content/uploads/models/media/images/2017/12/6/1566746583.jpg",
+    "video": "",
+    "excerpt": "قبر يوسف بنابلس.. صراع الروايات والوجود",
+    "body": "يشكل “قبر يوسف” بؤرة صراع بين الفلسطينيين والصهاينة منذ 55 عامًا؛ إذ يدعي الصهاينة أنه “قبر النبي يوسف” عليه السلام، في حين يؤكد الفلسطينيون أنه مقام لرجل مسلم صالح يدعى “يوسف دويكات”، وأن رواية الاحتلال ليست أكثر من مجرد رواية سياسية استيطانية.\n\nيقع “قبر يوسف” في بلدة بلاطة شرقي مدينة نابلس، وهي منطقة خاضعة لسيادة السلطة الفلسطينية، لكنه يشكل بؤرة صراع بين الفلسطينيين والصهاينة منذ احتلال المدينة عام 1967؛ إذ أصبح  وجهة دائمة للمستوطنين للصلاة فيه وإقامة الطقوس التلمودية.\n\nوفي عام 1986 أنشأ الاحتلال فيه مدرسة يهودية لتدريس التوراة، وفي عام 1990 تحول الـ”قبر” إلى نقطة عسكرية يسيطر عليها جيش الاحتلال، وصنفته ما تسمى بـ”وزارة الأديان الإسرائيلية” وقفًا يهوديًّا.\n\nالرواية اليهودية\n\nوحسب المزاعم اليهودية، فإن عظام النبي “يوسف بن يعقوب” عليه السلام أحضرت من مصر ودفنت في هذا المكان، ويستند اليهود إلى رواية في سفر التكوين، أحد أسفار التوراة، تقول إن “النبي يوسف أوصى بني إسرائيل بنقل عظامه ودفنها شرقي مدينة شكيم”، وهي مدينة نابلس الكنعانية.\n\nوبذلك بات القبر مرقدًا يهوديًّا للصلاة والحج، يذهب إليه المتدينون اليهود في نهاية كل شهر ميلادي للصلاة فيه والمكوث ليومين، يبدآن من منتصف الليل وحتى طلوع الشمس في اليوم التالي.\n\nلكنّ خبراء الآثار والمؤرخين ينفون صحة هذه الرواية، ويؤكدون أن عمر القبر لا يتجاوز الـ200 سنة، بدليل أن النبي موسى عليه السلام أتى بعد 200 عام على وفاة النبي يوسف عليه السلام، وبقي مكان دفنه في مصر مجهولًا، أما الدليل الثاني فهو أن القبر أو الضريح مبني وفق الطراز الإسلامي، حيث تكسوه قبة، وهي عادة كانت تستخدمها بعض الطوائف الإسلامية عند دفنها لأحد الموتى.\n\nدحض الرواية اليهودية \n\nتشير البحوث التاريخية إلى أن القبر حديث البناء يعود إلى العصر العثماني عام 1904، حيث بُني الضريح تخليدًا لرجل صالح كان يدعى يوسف دويكات، قدم إلى المنطقة، وكان يدرّس ويعلّم الدين الإسلامي.\n\nوبعد وفاته كرمته الدولة العثمانية بإقامة ضريح باسمه، وبقي المكان مزارًا للمسلمين، ومعبدا لبعض الطوائف الصوفية، التي أقامت طقوسًا خاصة كختان المواليد تيمنًا بالرجل الصالح.\n\nويؤكد الفلسطينيون أن الموقع هو أثر إسلامي مسجل لدى دائرة الأوقاف الإسلامية، وكان مسجدًا قبل الاحتلال الإسرائيلي.\n\nتوظيف سياسي تحت غطاء ديني\n\nفي حديث خاص لـ”المركز الفلسطيني للإعلام“، قال أستاذ التاريخ في جامعة النجاح الوطنية، أمين أبو بكر: كل القرائن تشير إلى أن هذا القبر ليس لنبي الله يوسف عليه السلام، وإنما هو مقام ووقف إسلامي، مسجل في الأرشيف العثماني، ولا دخل لليهود فيه.\n\nوأضاف: “تنتشر في فلسطين وبلاد الشام المقامات كثيرًا؛ ففي فلسطين وحدها 300 مقام ومزار، وبحسب الروايات يعود عمر مقام يوسف إلى 200 عام ليس أكثر”.\n\nوتابع أن هناك عدة مقامات حملت اسم سيدنا يوسف، عليه السلام، في مصر، وجنوب لبنان، وفلسطين بمنطقة جب يوسف، وفي عرابة قرب جنين، وفي الخليل، وهذا دليل على أنها تسميات لا علاقة لها بالواقع.\n\nوأشار إلى أنه “لا يعرف مكان دفن أي نبي غير قبر النبي محمد صلى الله عليه وسلم، وما عدا ذلك فهي مجرد مقامات وليست قبور أنبياء”، مذكرًا أن الناس سابقًا كانوا يطلقون أسماء الأنبياء على المقامات تقديسًا لهم، ليس أكثر، فقد مرت مدةٌ تعلق فيها الناس بالمقامات والمزارات، إحداها كان مقام يوسف.\n\nويضيف أمين أبو بكر أن نبي الله موسى عليه السلام نقل رفات يوسف عليه السلام من مصر بناءً على وصيته، لكن لا توجد رواية مؤكدة أن سيدنا موسى عليه السلام دخل فلسطين، ولا يعرف أين دفن رفات سيدنا يوسف عليه السلام، على وجه الدقة.\n\nوأوضح: “إن المسلمين يؤمنون بنبوة يوسف عليه السلام كغيره من الأنبياء المذكورين في القرآن الكريم، ولو كان هذا القبر يعود له لما أخفوا هذه الحقيقة”.\n\nوتابع: “الرحالة الأجانب الذين مروا بالمكان، لم يشيروا لوجود مجسم بنائي فوق المقام، وإنما كان كهفًا صغيرًا يتم النزول إليه بعدة درجات، كما تؤكد ذلك الرسومات والصور القديمة لقبر يوسف، والتي يعود تاريخها للنصف الثاني من القرن التاسع عشر”.\n\nويشير أستاذ التاريخ إلى أن مقام سيدنا إبراهيم عليه السلام في الحرم الإبراهيمي بمدينة الخليل أوقفت عليه العديد من الأوقاف، وعشرات القرى، منذ قديم الزمن، وهو ما يدلل على أنه كان يحظى باهتمام خاص من الدول المتعاقبة ومؤسساتها، في حين هناك أوقاف قليلة جدًّا للنبي يوسف في فلسطين، ما يدلل على أن الحقبة التاريخية لهذا القبر قصيرة نسبيًّا، ولم يتعلق به الناس إلا في مدّة متأخرة.\n\nويرى أمين أبو بكر أن الهدف من الرواية اليهودية هو: “ليّ عنق التاريخ، ومحاولة فرض لرأي وحقائق غير موجودة في التاريخ من أجل التوظيف السياسي تحت غطاء الدين؛ إرضاءً لجماعات معينة”.\n\nويؤكد أن “قبر يوسف” هو مقام لأحد أولياء الله الصالحين، بغض النظر إذا كان يوسف دويكات أو شخص آخر، لكنه بالتأكيد ليس قبر سيدنا يوسف عليه السلام، متسائلًا: لماذا لا يتم استخدام التقنيات الحديثة لفحص المقام، فالمقبرة الفرعونية الجديدة التي اكتشفت قبل شهرين استدعي لها فريق مختص من العلماء لإجراء فحص (DNA).\n\nبؤرة صراع وساحة للمقاومة\n\nشكل “قبر يوسف” طوال السنوات الماضية بؤرة صراع بين الفلسطينيين والصهاينة، وساحة للمقاومة الشعبية والمسلحة، ما أدى إلى استشهاد عدد كبير من الفلسطينيين، كما قتل العديد من الصهاينة، لاسيما في هبة النقب عام 1996 حينما اشتبك عناصر من الأمن الوطني الفلسطيني مع جنود الاحتلال، ليسفر الاشتباك عن مقتل 7 من جنود الاحتلال، ومحاصرة 40 آخرين داخل المقام.\n\nوفي عام 2000 ومع بداية انتفاضة الأقصى تكرر المشهد مرة ثانية، وهذه المرة بين جنود الاحتلال وعناصر من المقاومة، ما أسفر عن مقتل جندي وإصابة آخرين، كما استشهد 6 فلسطينيين.\n\nلتنسحب قوات الاحتلال من المقام، وتغلق المدرسة التوراتية الملحقة بالقبر، ومنذ ذلك الوقت يخضع المقام لسيطرة السلطة الفلسطينية، لكنه ظلّ بؤرة صراع دائم.\n\nولم تتوقف اقتحامات المستوطنين للمقام تحت حراسة قوات الاحتلال لتأدية صلواتهم التلمودية فيه، كما لم تتوقف محاولات الاحتلال فرض واقع جديد في المنطقة، مع تتنامى الدعوات التي يطلقها المستوطنون وجمعياتهم الاستيطانية لضم منطقة المقام إلى “السيادة الإسرائيلية”، وإقامة بؤر استيطانية فيها، وهو ما يعني تهديد أكثر من 30 ألف عائلة فلسطينية بالتهجير في حال صدّق الاحتلال على إقامة بؤر استيطانية دائمة في المنطقة.",
+    "images": [
+      "https://palinfo.com/wp-content/uploads/models/media/images/2017/12/6/1566746583.jpg"
+    ],
+    "coordinates": [
+      32.212778,
+      35.285556
+    ]
+  },
+  {
+    "id": "1.3",
+    "title": "مبنى الدبويا",
+    "governorate": "الخليل",
+    "place": "الخليل",
+    "city": "المدينة القديمة",
+    "site": "",
+    "status": "open",
+    "category": "وثائق مفتوحة",
+    "categoryType": "document",
+    "date": "2026-10-24",
+    "image": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSzmthU1iCpcf9k7LJWmDnS705yflA-p8eFTBLbxIPRd-zxzmM1",
+    "video": "",
+    "excerpt": "تُعدّ قصة مبنى الدبويا في مدينة الخليل واحدة من المحطات المفصلية في تاريخ الاستيطان داخل قلب المدينة القديمة",
+    "body": "تُعدّ قصة مبنى الدبويا في مدينة الخليل واحدة من المحطات المفصلية في تاريخ الاستيطان داخل قلب المدينة القديمة، إذ ارتبط الاستيلاء عليه عام 1979 ببداية ترسيخ الوجود الاستيطاني في مركز الخليل، ثم بتغيّرات واسعة طالت محيطه والأحياء الفلسطينية المجاورة.\nأولاً: ما هو مبنى الدبويا؟\nيقع المبنى في شارع الشهداء، بالقرب من البلدة القديمة في الخليل. وله تاريخ طويل ومتعدد الاستخدامات؛ فقد ارتبط بمؤسسة طبية، ثم استُخدم في فترة لاحقة مدرسةً ومركزاً للخدمات، وعُرف باسم الدبويا خلال استخدامه في العهد الأردني. وبعد استيطانه أطلق عليه الاحتلال اسم «بيت هداسا»\n\nالاستيلاء على المبنى عام 1979\n\nفي 26 نيسان/أبريل 1979، دخلت مجموعة من المستوطنات الإسرائيليات، برفقة أطفالهن، إلى مبنى الدبويا. وتذكر وثيقة للأمم المتحدة أن المجموعة ضمت نحو 15 امرأة و45 طفلاً، وأن دخولهن جاء احتجاجاً على موقف الحكومة الإسرائيلية من توسيع الاستيطان في المنطقة.\nرفضت المجموعة مغادرة المبنى، وأقامت فيه رغم الظروف المعيشية الصعبة. وتورد مصادر تاريخية فلسطينية أن الاستيلاء جرى بمساندة وحماية من الجيش الإسرائيلي، وأن السلطات لم تُخرج المجموعة من المبنى، بل أصبح الموقع لاحقاً نواة استيطانية داخل الخليل.\nكان لهذه الخطوة أثر يتجاوز السيطرة على مبنى واحد؛ إذ مثّلت انتقالاً من إقامة المستوطنين في مستوطنة كريات أربع، الواقعة شرق المدينة، إلى تثبيت وجود استيطاني داخل النسيج العمراني الفلسطيني في قلب الخليل.",
+    "images": [
+      "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSzmthU1iCpcf9k7LJWmDnS705yflA-p8eFTBLbxIPRd-zxzmM1",
+      "https://i0.wp.com/metras.co/wp-content/uploads/2021/02/%D8%A8%D9%8A%D8%AA-%D9%87%D8%AF%D8%A7%D8%B3%D8%A7-%D8%A7%D9%84%D8%AF%D8%A8%D9%88%D9%8A%D8%A7.jpeg?fit=1024,768&ssl=1",
+      "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcRjGRG-0jpf4L3ivwdbDUxLN8b7gbiF5IFll4lYi1gId17xn23O"
+    ],
+    "coordinates": [
+      31.526,
+      35.101
+    ]
+  },
+  {
+    "id": "2.3",
+    "title": "مدرسة أسامة بن المنقذ",
+    "governorate": "الخليل",
+    "place": "الخليل",
+    "city": "داخل البلدة القديمة في الخليل",
+    "site": "",
+    "status": "open",
+    "category": "ميدان",
+    "categoryType": "document",
+    "date": "2026-10-27",
+    "image": "https://www.aljazeera.net/wp-content/uploads/2019/07/0ea4b84d-4d21-466f-b763-c62c71a664e4.jpeg?resize=730%2C410&quality=80",
+    "video": "",
+    "excerpt": "تروي قصة مبنى «بيت رومانو» واحدة من المحطات المهمة في توسّع الاستيطان الإسرائيلي داخل البلدة القديمة في الخليل. فالمبنى الذي عُرف فلسطينياً باسم مدرسة أسامة بن المنقذ، وكان مخصصاً لتعليم الطلبة الفلسطينيين، تحوّل في مطلع ثمانينيات القرن الماضي إلى موقع استيطاني ومؤسسة دينية يهودية، في سياق تغييرات طالت وسط المدينة ومرافقه العامة.",
+    "body": "تروي قصة مبنى «بيت رومانو» واحدة من المحطات المهمة في توسّع الاستيطان الإسرائيلي داخل البلدة القديمة في الخليل. فالمبنى الذي عُرف فلسطينياً باسم مدرسة أسامة بن المنقذ، وكان مخصصاً لتعليم الطلبة الفلسطينيين، تحوّل في مطلع ثمانينيات القرن الماضي إلى موقع استيطاني ومؤسسة دينية يهودية، في سياق تغييرات طالت وسط المدينة ومرافقه العامة.\n\nقبل أن يحمل المبنى اسم «بيت رومانو»، كان معروفاً بين الفلسطينيين باسم مدرسة أسامة بن المنقذ، وهي مدرسة للبنين تقع في موقع مهم وسط الخليل، بالقرب من محطة الحافلات والسوق القديمة، وعلى مسافة قصيرة من المسجد الإبراهيمي.\n\nوبحسب تقرير نشرته الجزيرة في 11 تموز/يوليو 2019، كانت المدرسة تتألف من طابقين يضمان سبعة صفوف. ويتذكر فلسطينيون درسوا فيها معلميهم وأيام الدراسة، قبل أن يتحول المبنى إلى موقع استيطاني\n\nكيف جرى الاستيلاء على المدرسة؟\n\nتختلف المصادر في تحديد السنة الدقيقة التي بدأت فيها السيطرة على المبنى أو اكتملت؛ فبعض الدراسات والتقارير تشير إلى عام 1982، بينما تحدد مصادر أخرى عام 1983 موعداً للاستيلاء على المدرسة وإقامة بؤرة «بيت رومانو».\nوتذكر دراسة عن البلدة القديمة في الخليل أن المستوطنين استولوا على مدرسة أسامة بن المنقذ في تموز/يوليو 1983، بالتزامن مع سيطرة الجيش الإسرائيلي على محطة الحافلات المجاورة. وتشير مصادر فلسطينية إلى أن المدرسة ومحطة الحافلات شكلتا معاً جزءاً من التوسع الاستيطاني في المنطقة.\nوبعد السيطرة على المبنى، تغيّرت وظيفته من مدرسة فلسطينية إلى مؤسسة دينية يهودية، وأُطلق عليه اسم «بيت رومانو»، وأُضيفت إليه طوابق وتوسعات معمارية في السنوات اللاحقة.",
+    "images": [
+      "https://www.aljazeera.net/wp-content/uploads/2019/07/0ea4b84d-4d21-466f-b763-c62c71a664e4.jpeg?resize=730%2C410&quality=80",
+      "https://www.aljazeera.net/wp-content/uploads/2019/07/a2076cf9-02ae-4270-ade8-1d707178b33b.jpeg?quality=80",
+      "https://www.aljazeera.net/wp-content/uploads/2019/07/1fd21b1b-da92-4d21-9222-7e8b5d9fd5a4.jpeg?quality=80",
+      "https://www.aljazeera.net/wp-content/uploads/2019/07/c2eba529-b110-4bd3-af87-56ce19ef8e99.jpeg?quality=80"
+    ],
+    "coordinates": [
+      31.527,
+      35.106
+    ]
+  },
+  {
+    "id": "3.3",
+    "title": "تل الرميدة قبل الاستيطان الحديث",
+    "governorate": "الخليل",
+    "place": "تل الرميدة",
+    "city": "الخليل",
+    "site": "",
+    "status": "open",
+    "category": "وثائق مفتوحة",
+    "categoryType": "field",
+    "date": "2026-10-26",
+    "image": "https://www.thenationalnews.com/resizer/v2/XOHIN3C5764ABXIL64CF5UZKDE.jpg?auth=f58325b7a5c044b2c0c339ded44a3c97cd879f32173432024a2da00c36022676&smart=true&width=812&height=456",
+    "video": "",
+    "excerpt": "تُعدّ تل الرميدة من أقدم المواقع التاريخية في مدينة الخليل، وهي من أكثر المناطق التي تكشف كيف تداخل الاستيطان مع السيطرة العسكرية والآثار والقيود المفروضة على الحياة اليومية للفلسطينيين.",
+    "body": "تُعدّ تل الرميدة من أقدم المواقع التاريخية في مدينة الخليل، وهي من أكثر المناطق التي تكشف كيف تداخل الاستيطان مع السيطرة العسكرية والآثار والقيود المفروضة على الحياة اليومية للفلسطينيين.\n\nتقع التلة في قلب الخليل، إلى الجنوب الغربي من البلدة القديمة، وتطل على أجزاء من المدينة. وتكمن أهميتها في أنها ليست مجرد حي سكني؛ بل موقع أثري يعود تاريخه إلى آلاف السنين، وفيه بقايا مدن قديمة وأسوار ومنشآت تعاقبت عليها حضارات مختلفة\n\nتل الرميدة قبل الاستيطان الحديث\n\nتُظهر المكتشفات الأثرية أن تل الرميدة كان مركزاً عمرانياً مهماً منذ العصر البرونزي، قبل نحو ستة آلاف عام. وكشفت أعمال التنقيب عن أسوار ومنشآت سكنية وآثار من فترات تاريخية متعددة، شملت العصور البرونزية والرومانية والبيزنطية والإسلامية.\nوتشير دراسة أعدّها باحثون فلسطينيون إلى أن التلة كانت مركزاً رئيسياً للخليل القديمة، قبل انتقال الثقل العمراني تدريجياً نحو المنطقة المحيطة بالحرم الإبراهيمي والبلدة القديمة الحالية.\nوعلى مر القرون، بقيت التلة جزءاً من المشهد التاريخي والعمراني للخليل، وفيها أراضٍ ومنازل فلسطينية ومواقع أثرية ذات أهمية ثقافية.\n\nثانياً: بداية الاستيطان عام 1984\n\nتشكّل عام 1984 محطة أساسية في تاريخ الاستيطان الحديث في تل الرميدة. فبحسب دراسة عن الاستيطان في قلب الخليل، أُقيمت في ذلك العام نقطة عسكرية إسرائيلية على التلة، ووُضعت بجوارها بيوت متنقلة «كرافانات» لإسكان المستوطنين.\n لم يكن الموقع منفصلاً عن محيطه؛ فقد أتاح وجود النقطة العسكرية حماية الوجود الاستيطاني، بينما شكّلت التلة المرتفعة موقعاً استراتيجياً يطل على أجزاء من البلدة القديمة.\nوفي عام 1998، وافقت الحكومة الإسرائيلية على إقامة مبنى استيطاني دائم في الموقع، ليحل محل البيوت المتنقلة، وفق الدراسة نفسها. وهكذا انتقل الوجود الاستيطاني من مساكن مؤقتة إلى بناء ثابت، في خطوة عززت استمراره في قلب الحي الفلسطيني.\n\nالآثار القديمة في قلب الصراع\nتكتسب تل الرميدة أهمية خاصة بسبب آثارها القديمة، وهو ما جعل الموقع محوراً لمشروعات تنقيب وتطوير أثري.\nفي عام 2014، أفادت صحيفة Times of Israel بأن أعمال تنقيب جديدة بدأت في الموقع بمشاركة سلطة الآثار الإسرائيلية وجامعة أريئيل، ضمن مشروع طُرح لتطوير حديقة أثرية ومقصد سياحي. وأشارت الصحيفة إلى أن المبادرة جاءت بدعم من جهات استيطانية، مع تمويل حكومي معلن للمشروع.\n\nوفي 11 حزيران/يونيو 2025، أفادت وكالة «وفا» ببدء أعمال حفريات موسعة في تل الرميدة. ونقلت عن بلدية الخليل اعتراضها على المشروع، واعتبارها أنه يوظف الآثار لخدمة أهداف استيطانية ويمس بحقوق البلدية في الأرض والتراث. وهذا توصيف وموقف معلن للبلدية، وليس حكماً قضائياً مستقلاً.\n \nوهنا تظهر إحدى نقاط الخلاف الرئيسية: فالموقع يحمل قيمة أثرية حقيقية تعود إلى حضارات متعددة، لكن الخلاف يدور أيضاً حول إدارة الأرض، ومن يحدد الرواية التاريخية المعروضة للزوار، وكيف يؤثر تطوير الموقع على السكان الفلسطينيين وحقوقهم.\nرابعاً: مصادرة الأراضي وتوسيع السيطرة\nفي 23 أيلول/سبتمبر 2020، نشرت وكالة «وفا» خبراً عن إصدار أمر عسكري إسرائيلي بوضع اليد على مواقع وأراضٍ في تل الرميدة. ونقلت عن مصادر محلية أن الأمر شمل نحو 17 موقعاً، بمساحة إجمالية وردت في التقرير على أنها 3.807 دونم. كما أفاد أحد السكان بأن الجنود أبلغوه بخطط لتركيب أعمدة وكاميرات مراقبة قرب منزله.\n \nوتكشف هذه الواقعة أن السيطرة على التلة لم تقتصر على إنشاء مبنى استيطاني، بل امتدت إلى إجراءات عسكرية وأعمال مراقبة طالت أراضي ومحيط منازل الفلسطينيين.\n\nالاستيطان والحياة اليومية للسكان\n\nتظهر آثار الاستيطان بصورة مباشرة في الحياة اليومية لسكان تل الرميدة، من خلال الحواجز والقيود على الحركة وصعوبة التوسع العمراني.\n\nوفي تقرير نشرته اندبندنت عربية في 13 حزيران/يونيو 2026، ذُكر أن عدد العائلات الفلسطينية المقيمة في الحي انخفض، بحسب التقرير، من نحو 150 عائلة إلى 50 عائلة، في ظل العزل والقيود المفروضة على المنطقة. كما أشار التقرير إلى أن دخول أقارب السكان قد يتطلب تنسيقاً مسبقاً، وأن حركة المركبات الفلسطينية تواجه قيوداً. \n\n\nهذه الأرقام تعكس ما أورده التقرير عن الحي، ولا ينبغي اعتبارها إحصاءً رسمياً شاملاً من دون الرجوع إلى بيانات سكانية مستقلة.\nسادساً: الاستيلاء على منازل فلسطينية في السنوات الأخيرة\nلم تتوقف التحولات عند البؤرة الاستيطانية القائمة. ففي 25 أيلول/سبتمبر 2025، نشرت الجزيرة تقريراً عن توسع البؤر الاستيطانية داخل الخليل، أشار إلى استيلاء مستوطنين على سطح منزل في تل الرميدة في 13 تموز/يوليو 2023، ثم الاستيلاء على منزل مأهول يعود لعائلة عبد الباسط التميمي في 24 آذار/مارس 2025. \n\n\nوتوضح هذه الوقائع أن ملف تل الرميدة لا يتعلق فقط بتاريخ إنشاء المستوطنة في ثمانينيات القرن الماضي، بل أيضاً بالنزاعات على المنازل والأراضي واستمرار محاولات تغيير الواقع العمراني والديمغرافي في المنطقة.\n\nالخلاصة: من موقع تاريخي إلى بؤرة استيطانية محاطة بالقيود\nيمكن تلخيص التسلسل التاريخي لتل الرميدة على النحو التالي:\n- 1984: إقامة نقطة عسكرية ووضع بيوت متنقلة للمستوطنين بجوارها.\n- 1998: الموافقة على إنشاء مبنى استيطاني دائم.\n- 2014: تجدد أعمال التنقيب ضمن مشروع لتطوير الموقع الأثري.\n- 2020: صدور أمر عسكري بوضع اليد على مواقع وأراضٍ في المنطقة.\n- 2023–2025: توثيق حالات جديدة للاستيلاء على أجزاء من منازل وأراضٍ فلسطينية.\n- 2025: بدء حفريات موسعة أثارت اعتراض بلدية الخليل.\n- 2026: تقارير عن استمرار العزل والقيود على السكان الفلسطينيين.\nتُظهر هذه المحطات كيف تداخل الاستيطان مع الوجود العسكري والسيطرة على الأراضي والمشروعات الأثرية، وكيف انعكس ذلك على حياة السكان الفلسطينيين في تل الرميدة.",
+    "images": [
+      "https://www.thenationalnews.com/resizer/v2/XOHIN3C5764ABXIL64CF5UZKDE.jpg?auth=f58325b7a5c044b2c0c339ded44a3c97cd879f32173432024a2da00c36022676&smart=true&width=812&height=456",
+      "https://static-cdn.toi-media.com/www/uploads/2025/08/WhatsApp-Image-2025-08-18-at-18.21.48-640x400.jpeg",
+      "https://static-cdn.toi-media.com/www/uploads/2025/01/AFP__20241228__36RN7YZ__v1__HighRes__PalestinianIsraelConflictReligionJudaismHanukka-640x400.jpg"
+    ],
+    "coordinates": [
+      31.5251271,
+      35.1020629
+    ]
+  },
+  {
+    "id": "2.2",
+    "title": "أبرز محطات الصراع على الأراضي الفلسطينية في منطقة جنوب نابلس",
+    "governorate": "نابلس",
+    "place": "جبل صبيح",
+    "city": "نابلس",
+    "site": "",
+    "status": "closed",
+    "category": "ميدان",
+    "categoryType": "field",
+    "date": "2026-10-27",
+    "image": "https://www.ajnet.me/wp-content/uploads/2021/07/006.jpg?w=770&resize=770%2C513&quality=80",
+    "video": "",
+    "excerpt": "تقع قصة جبل صبيح جنوب مدينة نابلس، بين بلدات بيتا وقبلان ويتما، وهي من أبرز محطات الصراع على الأراضي الفلسطينية في منطقة جنوب نابلس. وتحوّل الجبل عام 2021 إلى مركز مواجهة واسعة بعدما أقام مستوطنون بؤرة استيطانية على قمته أطلقوا عليها اسم «أفيتار»، لتبدأ مواجهة استمرت أسابيع بين الأهالي وقوات الاحتلال، وانتهت بإخلاء المستوطنين مؤقتًا مع بقاء المنشآت على الأرض",
+    "body": "تقع قصة جبل صبيح جنوب مدينة نابلس، بين بلدات بيتا وقبلان ويتما، وهي من أبرز محطات الصراع على الأراضي الفلسطينية في منطقة جنوب نابلس. وتحوّل الجبل عام 2021 إلى مركز مواجهة واسعة بعدما أقام مستوطنون بؤرة استيطانية على قمته أطلقوا عليها اسم «أفيتار»، لتبدأ مواجهة استمرت أسابيع بين الأهالي وقوات الاحتلال، وانتهت بإخلاء المستوطنين مؤقتًا مع بقاء المنشآت على الأرض\n\n\nأولًا: لماذا استُهدف جبل صبيح؟\nلم تبدأ القصة في عام 2021؛ فقد شهد الجبل محاولات للسيطرة عليه منذ ثمانينيات القرن الماضي، حين أُقيمت مواقع عسكرية إسرائيلية في المنطقة. كما تكررت محاولات إقامة بؤرة استيطانية على الجبل في أعوام 2013 و2016 و2018، لكنها أُزيلت في تلك المرات.\n\nوتنبع أهمية الجبل من موقعه المرتفع وإشرافه على محيط بلدات بيتا وقبلان ويتما، فضلًا عن قربه من الطريق المعروف باسم «عابر السامرة» (الطريق رقم 5)، الذي يشكل محورًا رئيسيًا لحركة المستوطنين عبر الضفة الغربية.\n\n\nوكانت ملكية الأراضي من أبرز جوانب القضية؛ إذ أشارت تقارير فلسطينية وحقوقية إلى أن أراضي الجبل تشمل قطعًا مملوكة لفلسطينيين من البلدات الثلاث.\n\nإقامة بؤرة أفيتار\n\nفي مطلع أيار/مايو 2021، عاد المستوطنون إلى قمة جبل صبيح، وشرعوا في إقامة بؤرة استيطانية أطلقوا عليها اسم «جفعات أفيتار». وأُقيمت الوحدات السكنية والطرق والبنية التحتية بسرعة كبيرة، بمساندة وحماية من الجيش الإسرائيلي، بحسب تقارير فلسطينية وحقوقية.\n\nوجاء اسم البؤرة تخليدًا لذكرى المستوطن أفيتار بوروسكي، الذي قُتل قرب حاجز زعترة عام 2013.\n\nوخلال فترة قصيرة، تحولت القمة من أرض زراعية فلسطينية إلى تجمع استيطاني ضم عشرات الوحدات السكنية. واعتبر أصحاب الأراضي وأهالي البلدات المجاورة أن ما يجري محاولة لفرض واقع استيطاني جديد يصعب التراجع عنه لاحقًا. \n\n\nثالثًا: بيتا تنتفض دفاعًا عن الأرض\n\nقوبلت إقامة البؤرة باحتجاجات شعبية واسعة في بلدة بيتا، شارك فيها الأهالي من مختلف الفئات، إلى جانب سكان قبلان ويتما. واستمرت التحركات أسابيع، وأصبحت بيتا محورًا بارزًا للاحتجاج على التوسع الاستيطاني في جنوب نابلس.\n\nوفي تلك الفترة، شهدت البلدة مواجهات متكررة مع قوات الاحتلال، أُصيب خلالها مئات الفلسطينيين، وقُتل عدد من المتظاهرين برصاص القوات الإسرائيلية.\n\nومن بين الذين قُتلوا خلال تلك الأحداث، وفق وكالة الأنباء الفلسطينية «وفا»، عيسى برهم، وزكريا حمايل، ومحمد حمايل، وأحمد بني شمسة. ووثقت منظمات حقوقية لاحقًا سقوط مزيد من الضحايا خلال الاحتجاجات التي امتدت لأشهر. \n\n\n\nلم تكن القضية بالنسبة إلى الأهالي مجرد إقامة بيوت متنقلة فوق قمة جبل؛ بل ارتبطت بمصير الأراضي الزراعية وحق أصحابها في الوصول إليها، وبمخاوف من توسع استيطاني يغيّر جغرافية المنطقة.\n\nلماذا يُعد جبل صبيح قضية استراتيجية؟\n\nتتجاوز أهمية جبل صبيح حدود موقع استيطاني واحد، لثلاثة أسباب رئيسية:\n- الأرض والملكية: يرتبط الجبل بأراضٍ زراعية يملكها فلسطينيون من بيتا وقبلان ويتما، ويؤثر الاستيطان في قدرتهم على الوصول إلى أراضيهم واستغلالها.\n- الموقع الجغرافي: يقع الجبل في منطقة مهمة جنوب نابلس، قرب محور طرق رئيسي، ما يمنح السيطرة عليه أهمية في التوسع الاستيطاني الإقليمي.\n- ربط التجمعات الاستيطانية: حذرت تقارير فلسطينية من أن تثبيت البؤرة قد يسهم في توسيع التواصل الجغرافي بين تجمعات استيطانية قائمة ويزيد من عزل البلدات الفلسطينية عن بعضها.",
+    "images": [
+      "https://www.ajnet.me/wp-content/uploads/2021/07/006.jpg?w=770&resize=770%2C513&quality=80",
+      "https://www.ajnet.me/wp-content/uploads/2021/06/20210618_2_48816211_66199881.jpg?resize=770%2C513&quality=80",
+      "https://alpha-ar-media.almayadeen.net/archive/image/2021/6/15/37cba350-6f9d-450c-a9b9-1a9e63743b8e.jpg",
+      "https://alpha-ar-media.almayadeen.net/archive/image/2021/6/15/37cba350-6f9d-450c-a9b9-1a9e63743b8e.jpg",
+      "https://alpha-ar-media.almayadeen.net/archive/image/2021/6/15/37cba350-6f9d-450c-a9b9-1a9e63743b8e.jpg",
+      "https://www.7iber.com/wp-content/uploads/2021/06/%D8%A8%D8%A8%D9%84.webp",
+      "https://www.7iber.com/wp-content/uploads/2021/06/000_9CW9AR-scaled.jpg",
+      "https://www.7iber.com/wp-content/uploads/2021/06/000_9CW9AY-scaled.jpg",
+      "https://www.7iber.com/wp-content/uploads/2021/06/000_9CW9AL-scaled.jpg"
+    ],
+    "coordinates": [
+      32.14361,
+      35.2875
+    ]
+  },
+  {
+    "id": "1.6",
+    "title": "تحذيرات من مصادقة سلطات الاحتلال على مخطط استيطاني",
+    "governorate": "القدس",
+    "place": "عقارات باب السلسلة",
+    "city": "القدس",
+    "site": "",
+    "status": "closed",
+    "category": "ميدان",
+    "categoryType": "field",
+    "date": "2026-10-30",
+    "image": "https://palinfo.com/wp-content/uploads/2026/05/Pic-6052026.jpg",
+    "video": "",
+    "excerpt": "يُمثل ممرًا حيويًا للأقصى، ويضم أوقافاً ومعالم إسلامية تاريخية.. تحذيرات من مصادقة سلطات الاحتلال على مخطط يقضي بإخلاء مواطنين مقدسيين ومصادرة (15 إلى 20) عقاراً ومحلاً تجارياً في حي باب السلسلة الملاصق للمسجد الأقصى",
+    "body": "صادقت حكومة الاحتلال على مخطط استيطاني يهدف إلى الاستيلاء على ما بين 15 إلى 20 عقاراً فلسطينياً تاريخياً في حي باب السلسلة الملاصق للمسجد الأقصى المبارك في البلدة القديمة بالقدس.\n\nنطاق الاستيلاء: تشمل المصادرة منازل ومحال تجارية تقع على امتداد طريق باب السلسلة المؤدي مباشرة إلى الأقصى، وتعود ملكيتها لعائلات مقدسية عريقة (مثل النمري، غنيم، البشيتي، والجاعوني\n\nالمعالم التاريخية: تضم العقارات المستهدفة أوقافاً ومباني تعود للعصور الأيوبية والمملوكية والعثمانية، أبرزها المدرسة الطشتمرية (المبنية عام 1382م) التي يقع فوقها مقر الهيئة الإسلامية العليا.\n\nكما ينظر الاحتلال إلى المنطقة باعتبارها ذات أهمية أمنية، إذ تشكل إحدى النقاط التي تنطلق منها قواته خلال اقتحامات المسجد الأقصى، فيما يوفر إحكام السيطرة عليها “عمقاً أمنياً” إضافياً حول المسجد، إلى جانب السعي لإعادة هندسة التركيبة السكانية في البلدة القديمة عبر تفكيك الحزام البشري الفلسطيني المحيط بالأقصى.",
+    "images": [
+      "https://palinfo.com/wp-content/uploads/2026/05/Pic-6052026.jpg",
+      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgb5hlef_AGROAQvjT3_o8NQEFf3DZxsxkw82fiPxCIU2ANPZ89SA7C2fxEn5GoHmtzzSRYl21f8a8jcBfZXQVIK9_DNBo2-c8_g-Y29MSuKm8lZYPqUD4pllDAeTGMrhJS9yLwcwKh3rDv-Y26UqHPNEPWKyL99seIq2NTqKi7iYIQTo14mLT_AMEQy5rq/s16000/a326b8e3d0b1.jpg",
+      "https://cdn.alquds.com/uploads/708ef7d20dbe802b0cb8a4bdbcb8d350.avif"
+    ],
+    "coordinates": [
+      31.777,
+      35.231
+    ]
+  },
+  {
+    "id": "3.4",
+    "title": "تهويد مبنى بلدية الخليل",
+    "governorate": "الخليل",
+    "place": "مبنى بلدية الخليل",
+    "city": "الخليل",
+    "site": "",
+    "status": "open",
+    "category": "ميدان",
+    "categoryType": "document",
+    "date": "2026-11-04",
+    "image": "https://www.aljazeera.net/wp-content/uploads/2025/09/%D9%85%D9%86%D8%B2%D9%84-1757332599.png?resize=552%2C380&quality=80",
+    "video": "",
+    "excerpt": "تستهدف إسرائيل تهويد مبنى بلدية الخليل التاريخي القديم الواقع في ساحة عين عسكر",
+    "body": "تستهدف إسرائيل تهويد مبنى بلدية الخليل التاريخي القديم الواقع في ساحة عين عسكر، حيث أخطرت قوات الاحتلال البلدية بإخلائه في مايو 2023 بدعوى ملكية يهودية مزيفة، رغم تملك البلدية للمبنى قانونياً. تم إغلاق المبنى باللحام في مايو 2024 تمهيداً لتسليمه للمستوطنين، في خطوة تصنفها السلطات المحلية والهيئات الدولية انتهاكاً صارخاً للقوانين الدولية وهدفاً لطمس الهوية الفلسطينية في البلدة القديمة المصنفة تراثاً عالمياً.\n\nشهدت المنطقة تصاعداً في الإجراءات الاستيطانية العسكرية، شمل نصب بوابات حديدية وإقامة برج مراقبة وحصار بأسلاك شائكة فوق سطح المبنى منذ مايو 2026. كما نفذ الاحتلال أعمال بناء على السطح وتقسيم القاعات الداخلية بصفائح جبسية، فيما ينصب مستوطنون قرطاسية وكتباً دينية في مبنى المنجرة المجاور، في محاولة لترسيخ وجود استيطاني يهدف لتحويل الموقع إلى مركز ديني أو مرفق مستعمر، مما يعزل البلدة القديمة ويقيّد الحركة الفلسطينية فيها.",
+    "images": [
+      "https://www.aljazeera.net/wp-content/uploads/2025/09/%D9%85%D9%86%D8%B2%D9%84-1757332599.png?resize=552%2C380&quality=80",
+      "https://www.aajae.co/sites/default/files/styles/large_16_9/public/2026-05/1001291777.jpg?h=b118209f&itok=tqf56SBJ"
+    ],
+    "coordinates": [
+      31.527,
+      35.101
+    ]
+  },
+  {
+    "id": "3.5",
+    "title": "مستوطنة ناحال دوران على جبل طاروسة",
+    "governorate": "الخليل",
+    "place": "جبل طاروسة",
+    "city": "الخليل",
+    "site": "",
+    "status": "closed",
+    "category": "ميدان",
+    "categoryType": "field",
+    "date": "2026-11-04",
+    "image": "https://www.alaraby.co.uk/sites/default/files/styles/large_16_9/public/2026-03/GettyImages-2262186798.jpg?h=790be497&itok=0gigeirR",
+    "video": "https://youtu.be/GP7p_cUerg4?si=65oPzil8YIe-OLFd",
+    "excerpt": "تجمع سكاني فلسطيني صغير وموقع استراتيجي يقع غرب مدينة دورا في جنوب محافظة الخليل بالضفة الغربية المحتلة، ويبلغ عدد سكانه نحو 138 نسمة",
+    "body": "جبل طاروسة هو تجمع سكاني فلسطيني صغير وموقع استراتيجي يقع غرب مدينة دورا في جنوب محافظة الخليل بالضفة الغربية المحتلة، ويبلغ عدد سكانه نحو 138 نسمة. يرتفع الجبل حوالي 486 متراً عن سطح البحر، ويحده من الشمال تجمع حمصة، ومن الجنوب واد قورا، ومن الشرق دورا، ومن الغرب دير سامت.\nشهدت المنطقة تصعيداً استيطانياً مكثفاً مؤخراً، حيث صادقت حكومة الاحتلال على إقامة مستوطنة رسمية جديدة عليه تحمل اسم \"ناحال دوران\" (أو مستوطنة دوران)، بعد أن أدرجها المجلس الوزاري الإسرائيلي المصغر ضمن 19 مستوطنة سيتم شرعنتها. قامت قوات الاحتلال والمستوطنون بعمليات تجريف، وتركيب بيوت متنقلة، ونصب نقاط عسكرية وبوابات إلكترونية، مما أدى إلى عزل البلديات المجاورة مثل دورا ودير سامت وتقييد حركة آلاف المواطنين.\nتتصاعد المخاوف الفلسطينية من أن يؤدي هذا المخطط إلى القضاء على المنفذ الوحيد الذي يخدم أكثر من 50 ألف مواطن في قرى جنوب المحافظة، وفرض واقع ديمغرافي وأمني جديد يعزل المنطقة ويقتلع الممتلكات الزراعية. وقد قامت وزيرة الاستيطان الإسرائيلية أوريت ستروك ومستوطنون متطرفون باقتحام الجبل وإقامة طقوس تلمودية فيه، في خطوة تهدف إلى تثبيت الأمر الواقع والاستيلاء على الأراضي.",
+    "images": [
+      "https://www.alaraby.co.uk/sites/default/files/styles/large_16_9/public/2026-03/GettyImages-2262186798.jpg?h=790be497&itok=0gigeirR",
+      "https://fsn1.your-objectstorage.com/hurryanews/uploads/hurrya/2026/06/10307-photo-2026-06-19-15-04-58.jpg"
+    ],
+    "coordinates": [
+      31.5246,
+      34.9856
+    ]
+  }
+];
+
+    const categoryColors = { map: "", field: "category-field", document: "category-document" };
+    const fallbackImage = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=70";
+    const articleList = document.querySelector("#article-list");
+    const reportGrid = document.querySelector("#report-grid");
+    const governorateGrid = document.querySelector("#governorate-grid");
+    const governorateIndex = document.querySelector("#governorates-index");
+    const governorateBrowser = document.querySelector("#governorate-browser");
+    const directoryGrid = document.querySelector("#directory-grid");
+    const searchInput = document.querySelector("#search");
+    const provinceFilter = document.querySelector("#province-filter");
+    const modal = document.querySelector("#article-modal");
+    let activeArticleId = null;
+    let galleryTimer = null;
+    let directoryLevel = "governorates";
+    let selectedGovernorate = "";
+    let selectedStatus = "";
+    let map;
+    const markers = new Map();
+
+    function makeElement(tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text !== undefined) element.textContent = text;
+      return element;
+    }
+
+    function imageWithFallback(image, src, alt) {
+      image.src = src || fallbackImage;
+      image.alt = alt;
+      image.loading = /^https:\/\/(?:img\.youtube\.com|i\.ytimg\.com)\/vi\//.test(src || "") ? "eager" : "lazy";
+      const alternateYouTubeSrc = src?.replace("https://img.youtube.com/", "https://i.ytimg.com/");
+      image.addEventListener("error", () => {
+        if (alternateYouTubeSrc && image.src !== alternateYouTubeSrc) {
+          image.src = alternateYouTubeSrc;
+          return;
+        }
+        if (image.src !== fallbackImage) image.src = fallbackImage;
+      });
+    }
+
+    function getYouTubeId(videoUrl) {
+      if (!videoUrl) return "";
+      try {
+        const url = new URL(videoUrl);
+        const host = url.hostname.replace(/^www\./, "");
+        let videoId = "";
+        if (host === "youtu.be") videoId = url.pathname.split("/").filter(Boolean)[0] || "";
+        if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
+          videoId = url.searchParams.get("v") || url.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/)?.[1] || "";
+        }
+        return /^[\w-]{11}$/.test(videoId) ? videoId : "";
+      } catch {
+        return "";
+      }
+    }
+
+    function getArticleImage(article) {
+      const articleImages = Array.isArray(article.images) ? article.images.filter(Boolean) : [];
+      const youtubeId = getYouTubeId(article.video);
+      return articleImages[0] || article.image || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : fallbackImage);
+    }
+
+    function getArticleImages(article) {
+      const articleImages = Array.isArray(article.images) ? article.images.filter(Boolean) : [];
+      return articleImages.length ? articleImages : [getArticleImage(article)];
+    }
+
+    function getArticleStatus(article) {
+      return article.status === "closed" ? "closed" : "open";
+    }
+
+    function createMeta(article) {
+      const meta = makeElement("div", "article-meta");
+      meta.append(makeElement("span", "article-tag", article.category));
+      meta.append(makeElement("span", "", getArticleStatus(article) === "closed" ? "مواقع مهددة بسيطرة الاحتلال عليها" : "مواقع تم السيطرة عليها من قبل الاحتلال"));
+      meta.append(makeElement("span", "", article.governorate));
+      meta.append(makeElement("span", "", article.date));
+      return meta;
+    }
+
+    function openArticle(article) {
+      activeArticleId = article.id;
+      window.clearInterval(galleryTimer);
+      const mediaContainer = document.querySelector("#modal-media-container");
+      mediaContainer.replaceChildren();
+      const images = getArticleImages(article);
+      const gallery = makeElement("div", "modal-gallery");
+      const stage = makeElement("div", "gallery-stage");
+      const image = makeElement("img", "modal-media gallery-image");
+      imageWithFallback(image, images[0], article.title);
+      stage.append(image);
+      const toolbar = makeElement("div", "gallery-toolbar");
+      let currentImage = 0;
+      const dots = [];
+      const counter = makeElement("span", "gallery-counter", `01 / ${String(images.length).padStart(2, "0")}`);
+
+      function showImage(index) {
+        currentImage = (index + images.length) % images.length;
+        image.src = images[currentImage];
+        counter.textContent = `${String(currentImage + 1).padStart(2, "0")} / ${String(images.length).padStart(2, "0")}`;
+        dots.forEach((dot, dotIndex) => {
+          dot.classList.toggle("active", dotIndex === currentImage);
+          dot.setAttribute("aria-current", dotIndex === currentImage ? "true" : "false");
+        });
+      }
+
+      if (images.length > 1) {
+        const previous = makeElement("button", "gallery-arrow gallery-previous", "→");
+        previous.type = "button";
+        previous.setAttribute("aria-label", "الصورة السابقة");
+        previous.addEventListener("click", () => showImage(currentImage - 1));
+        const next = makeElement("button", "gallery-arrow gallery-next", "←");
+        next.type = "button";
+        next.setAttribute("aria-label", "الصورة التالية");
+        next.addEventListener("click", () => showImage(currentImage + 1));
+        stage.append(previous, next);
+        images.forEach((_, index) => {
+          const dot = makeElement("button", `gallery-dot${index === 0 ? " active" : ""}`);
+          dot.type = "button";
+          dot.setAttribute("aria-label", `عرض الصورة ${index + 1}`);
+          dot.setAttribute("aria-current", index === 0 ? "true" : "false");
+          dot.addEventListener("click", () => showImage(index));
+          dots.push(dot);
+          toolbar.append(dot);
+        });
+        toolbar.append(counter);
+      }
+      gallery.append(stage);
+      if (images.length > 1) gallery.append(toolbar);
+      mediaContainer.append(gallery);
+      if (images.length > 1) galleryTimer = window.setInterval(() => showImage(currentImage + 1), 4000);
+
+      if (article.video) {
+        const youtubeId = getYouTubeId(article.video);
+        if (youtubeId) {
+          const iframe = makeElement("iframe", "modal-media modal-video");
+          iframe.src = `https://www.youtube-nocookie.com/embed/${youtubeId}`;
+          iframe.title = article.title;
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+          iframe.allowFullscreen = true;
+          iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          mediaContainer.append(iframe);
+        } else {
+          const video = makeElement("video", "modal-media modal-video");
+          video.controls = true;
+          video.preload = "metadata";
+          video.src = article.video;
+          mediaContainer.append(video);
+        }
+      }
+      document.querySelector("#modal-meta").replaceChildren(createMeta(article));
+      document.querySelector("#modal-title").textContent = article.title;
+      document.querySelector("#modal-description").textContent = article.body;
+      const location = document.querySelector("#modal-location");
+      location.replaceChildren(
+        makeElement("span", "", `الموقع: ${article.site || article.place}، ${article.city || article.place}، ${article.governorate}`),
+        makeElement("span", "", getArticleStatus(article) === "closed" ? "الحالة:مواقع مهددة بسيطرة الاحتلال عليها" : "الحالة: مواقع تم السيطرة عليها من قبل الاحتلال"),
+        makeElement("span", "", `الإحداثيات: ${article.coordinates[0]}, ${article.coordinates[1]}`)
+      );
+      modal.classList.add("open");
+      document.body.style.overflow = "hidden";
+      document.querySelector("#modal-close").focus();
+    }
+
+    function closeArticle() {
+      modal.classList.remove("open");
+      window.clearInterval(galleryTimer);
+      galleryTimer = null;
+      document.body.style.overflow = "";
+      if (activeArticleId) {
+        const card = document.querySelector(`[data-article-id="${CSS.escape(activeArticleId)}"]`);
+        if (card) card.focus();
+      }
+    }
+
+    function renderCards() {
+      const term = searchInput.value.trim().toLocaleLowerCase("ar");
+      const selectedGovernorate = provinceFilter.value;
+      const visible = articles.filter((article) => {
+        const matchesGovernorate = selectedGovernorate === "all" || article.governorate === selectedGovernorate;
+        const haystack = `${article.title} ${article.excerpt} ${article.governorate} ${article.city || article.place} ${article.site || ""} ${article.category}`.toLocaleLowerCase("ar");
+        return matchesGovernorate && haystack.includes(term);
+      });
+
+      articleList.replaceChildren();
+      if (visible.length === 0) {
+        articleList.append(makeElement("div", "empty-state", "لا توجد ملفات مطابقة."));
+      }
+      visible.forEach((article) => {
+        const button = makeElement("button", "article-card");
+        button.type = "button";
+        button.dataset.articleId = article.id;
+        button.setAttribute("aria-label", `افتح الملف: ${article.title}`);
+        const image = makeElement("img", "article-thumb");
+        imageWithFallback(image, getArticleImage(article), article.title);
+        const content = makeElement("span", "article-card-content");
+        const meta = makeElement("span", "article-meta");
+        meta.append(makeElement("span", "article-tag", article.category), makeElement("span", "", getArticleStatus(article) === "closed" ? "مواقع مهددة بسيطرة الاحتلال عليها" : "مواقع تم السيطرة عليها من قبل الاحتلال"), makeElement("span", "", article.governorate));
+        content.append(meta, makeElement("span", "article-card-title", article.title), makeElement("span", "article-card-summary", article.excerpt));
+        button.append(image, content);
+        button.addEventListener("click", () => openArticle(article));
+        articleList.append(button);
+      });
+      document.querySelector("#visible-count").textContent = `${String(visible.length).padStart(2, "0")} / ${String(articles.length).padStart(2, "0")}`;
+      markers.forEach((marker, id) => {
+        const article = articles.find((item) => item.id === id);
+        const matchesTerm = article && `${article.title} ${article.excerpt} ${article.governorate} ${article.city || article.place} ${article.site || ""} ${article.category}`.toLocaleLowerCase("ar").includes(term);
+        const matchesGovernorate = article && (selectedGovernorate === "all" || article.governorate === selectedGovernorate);
+        if (article && matchesTerm && matchesGovernorate) marker.addTo(map);
+        else map.removeLayer(marker);
+      });
+    }
+
+    function renderReportCards() {
+      reportGrid.replaceChildren();
+      articles.forEach((article, index) => {
+        const card = makeElement("article", "report-card");
+        card.tabIndex = 0;
+        card.dataset.articleId = article.id;
+        card.setAttribute("aria-label", `افتح الملف: ${article.title}`);
+        const imageWrap = makeElement("div", "report-image-wrap");
+        const image = makeElement("img", "report-image");
+        imageWithFallback(image, getArticleImage(article), article.title);
+        imageWrap.append(image, makeElement("span", "report-index", `0${index + 1}`));
+        const body = makeElement("div", "report-body");
+        body.append(createMeta(article), makeElement("h3", "", article.title), makeElement("p", "", article.excerpt));
+        const foot = makeElement("div", "report-foot");
+        foot.append(makeElement("span", "", article.governorate), makeElement("span", "read-label", "اقرأ الملف ←"));
+        body.append(foot);
+        card.append(imageWrap, body);
+        card.addEventListener("click", () => openArticle(article));
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openArticle(article);
+          }
+        });
+        reportGrid.append(card);
+      });
+    }
+
+    function renderGovernorates() {
+      governorateGrid.replaceChildren();
+      [
+        { value: "open", label: "مواقع تم السيطرة عليها من قبل الاحتلال" },
+        { value: "closed", label: "مواقع مهددة بسيطرة الاحتلال عليها" }
+      ].forEach((status) => {
+        const count = articles.filter((article) => getArticleStatus(article) === status.value).length;
+        const button = makeElement("button", "governorate-item");
+        button.type = "button";
+        button.append(makeElement("strong", "", status.label), makeElement("span", "", `${String(count).padStart(2, "0")} تقرير`));
+        button.addEventListener("click", () => {
+          selectedStatus = status.value;
+          directoryLevel = "governorates";
+          governorateIndex.hidden = true;
+          governorateBrowser.hidden = false;
+          renderDirectory();
+        });
+        governorateGrid.append(button);
+      });
+
+      [...new Set(articles.map((article) => article.governorate))].forEach((governorate) => {
+        const option = makeElement("option", "", governorate);
+        option.value = governorate;
+        provinceFilter.append(option);
+      });
+    }
+
+    function resetGovernorateDirectory() {
+      directoryLevel = "status";
+      selectedGovernorate = "";
+      selectedStatus = "";
+      governorateIndex.hidden = false;
+      governorateBrowser.hidden = true;
+    }
+
+    function renderDirectory() {
+      const title = document.querySelector("#directory-title");
+      const description = document.querySelector("#directory-description");
+      const backButton = document.querySelector("#directory-back");
+      directoryGrid.replaceChildren();
+
+      const statusLabel = selectedStatus === "closed" ? "مواقع مهددة بسيطرة الاحتلال عليها" : "مواقع تم السيطرة عليها من قبل الاحتلال";
+      if (directoryLevel === "governorates") {
+        title.textContent = statusLabel;
+        description.textContent = "اختر محافظة لعرض تقاريرها المنشورة.";
+        backButton.querySelector("span").textContent = "العودة إلى الحالات";
+        const governorates = [...new Set(articles
+          .filter((article) => getArticleStatus(article) === selectedStatus)
+          .map((article) => article.governorate))];
+        if (governorates.length === 0) {
+          directoryGrid.append(makeElement("div", "empty-state", "لا توجد تقارير منشورة في هذه الحالة بعد."));
+          return;
+        }
+        governorates.forEach((governorate) => {
+          const count = articles.filter((article) => article.governorate === governorate && getArticleStatus(article) === selectedStatus).length;
+          const button = makeElement("button", "governorate-item");
+          button.type = "button";
+          button.append(makeElement("strong", "", governorate), makeElement("span", "", `${String(count).padStart(2, "0")} تقرير`));
+          button.addEventListener("click", () => {
+            selectedGovernorate = governorate;
+            directoryLevel = "reports";
+            renderDirectory();
+          });
+          directoryGrid.append(button);
+        });
+        return;
+      }
+
+      title.textContent = selectedGovernorate;
+      description.textContent = `التقارير المنشورة عن ${selectedGovernorate} ضمن ${statusLabel}.`;
+      backButton.querySelector("span").textContent = "العودة إلى المحافظات";
+      const reports = articles.filter((article) => article.governorate === selectedGovernorate && getArticleStatus(article) === selectedStatus);
+      if (reports.length === 0) {
+        directoryGrid.append(makeElement("div", "empty-state", "لا توجد تقارير منشورة هنا بعد."));
+        return;
+      }
+      reports.forEach((article) => {
+        const button = makeElement("button", "governorate-item");
+        const copy = makeElement("div", "directory-item-copy");
+        copy.append(makeElement("strong", "", article.title), makeElement("small", "", `${article.site || article.place} · ${article.date} · ${article.excerpt}`));
+        button.type = "button";
+        button.dataset.articleId = article.id;
+        button.append(copy, makeElement("span", "", "فتح ←"));
+        button.addEventListener("click", () => openArticle(article));
+        directoryGrid.append(button);
+      });
+    }
+
+    document.querySelector("#directory-back").addEventListener("click", () => {
+      if (directoryLevel === "governorates") {
+        resetGovernorateDirectory();
+        return;
+      }
+      directoryLevel = "governorates";
+      renderDirectory();
+    });
+
+    function initializeMap() {
+      if (!window.L) {
+        document.querySelector("#map").replaceWith(makeElement("div", "empty-state", "تعذر تحميل الخريطة. تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة."));
+        return;
+      }
+      map = L.map("map", { scrollWheelZoom: false, zoomControl: true }).setView([31.95, 35.22], 8);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
+      }).addTo(map);
+      articles.forEach((article) => {
+        const icon = L.divIcon({
+          className: "",
+          html: `<span class="custom-marker ${categoryColors[article.categoryType] || ""}"><span></span></span>`,
+          iconSize: [19, 19],
+          iconAnchor: [9, 9]
+        });
+        const marker = L.marker(article.coordinates, { icon });
+        const popup = makeElement("div");
+        popup.append(makeElement("strong", "", article.site || article.title), makeElement("span", "", `${article.city || article.place} · ${article.status === "closed" ? "مواقع مهددة بسيطرة الاحتلال عليها" : "مواقع تم السيطرة عليها من قبل الاحتلال"}`));
+        const openButton = makeElement("button", "", "فتح الملف");
+        openButton.type = "button";
+        openButton.addEventListener("click", () => openArticle(article));
+        popup.append(openButton);
+        marker.bindPopup(popup);
+        marker.addTo(map);
+        markers.set(article.id, marker);
+      });
+      window.setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    function showView(viewName) {
+      document.querySelectorAll(".page-view").forEach((view) => {
+        view.hidden = view.id !== `${viewName}-view`;
+      });
+      document.querySelectorAll(".nav-link").forEach((button) => {
+        const isActive = button.dataset.view === viewName;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-current", isActive ? "page" : "false");
+      });
+      if (viewName === "home" && map) window.setTimeout(() => map.invalidateSize(), 50);
+    }
+
+    document.querySelectorAll(".nav-link").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.dataset.view === "governorates") resetGovernorateDirectory();
+        showView(button.dataset.view);
+      });
+    });
+    document.querySelector(".brand").addEventListener("click", (event) => {
+      event.preventDefault();
+      showView("home");
+    });
+    searchInput.addEventListener("input", renderCards);
+    provinceFilter.addEventListener("change", renderCards);
+    document.querySelector("#modal-close").addEventListener("click", closeArticle);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeArticle();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("open")) closeArticle();
+    });
+
+    document.querySelector("#stat-articles").innerHTML = `${String(articles.length).padStart(2, "0")}`;
+    document.querySelector("#stat-governorates").innerHTML = `${String(new Set(articles.map((article) => article.governorate)).size).padStart(2, "0")}`;
+    const dateParts = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit" }).formatToParts(new Date());
+    const statDate = document.querySelector("#stat-date");
+    statDate.replaceChildren(
+      makeElement("span", "", dateParts.find((part) => part.type === "day").value),
+      makeElement("span", "", "/"),
+      makeElement("span", "", dateParts.find((part) => part.type === "month").value),
+      makeElement("small", "", "")
+    );
+    renderGovernorates();
+    renderCards();
+    renderReportCards();
+    initializeMap();
+  </script>
+</body>
+</html>
