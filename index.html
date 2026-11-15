@@ -62,6 +62,16 @@
     .section-kicker { display: flex; align-items: center; gap: 10px; color: var(--acid); font-family: "Space Mono", monospace; font-size: 10px; direction: ltr; letter-spacing: 0; }
     .section-kicker::before { width: 22px; height: 1px; background: currentColor; content: ""; }
     .intro-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 23px; }
+    .contributor-callout { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 22px; overflow: hidden; margin-bottom: 24px; padding: 20px 24px; border: 1px solid #47736e; border-inline-start: 3px solid var(--acid); border-radius: var(--radius); background: linear-gradient(110deg, #172b30, #1b292f 68%, #263332); }
+    .contributor-callout::after { position: absolute; inset-block: 0; inset-inline-start: 19%; width: 190px; background: repeating-linear-gradient(0deg, #55d5c710 0 1px, transparent 1px 14px), repeating-linear-gradient(90deg, #55d5c710 0 1px, transparent 1px 14px); content: ""; pointer-events: none; }
+    .contributor-copy, .contributor-mark { position: relative; z-index: 1; }
+    .contributor-kicker { color: var(--copper); }
+    .contributor-copy h2 { max-width: 700px; margin: 8px 0 5px; font-size: 21px; line-height: 1.65; font-weight: 600; }
+    .contributor-copy p { margin: 0; color: var(--muted); font-size: 13px; }
+    .contributor-copy strong { color: var(--copper); font-weight: 600; }
+    .contributor-mark { display: inline-flex; min-width: 112px; min-height: 44px; align-items: center; justify-content: center; padding: 10px 15px; border: 1px solid #f0b16d66; background: #10171d80; color: var(--copper); text-align: center; text-decoration: none; font-size: 12px; transition: border-color .2s, background .2s, color .2s; }
+    .contributor-mark:hover { border-color: var(--copper); background: #f0b16d18; color: var(--ink); }
+    .contributor-mark:focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; }
     .intro-copy { min-width: 0; max-width: 430px; }
     h1, h2, h3, p { margin-top: 0; }
     .intro-row h1, .page-heading h1 { margin: 8px 0 0; font-size: clamp(24px, 3vw, 36px); line-height: 1.35; font-weight: 600; }
@@ -212,6 +222,10 @@
       .nav-link.active::after { inset-inline: 22%; }
       main { padding-top: 24px; }
       .intro-row { display: block; }
+      .contributor-callout { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-bottom: 20px; padding: 16px; }
+      .contributor-copy h2 { font-size: 17px; }
+      .contributor-copy p { font-size: 12px; line-height: 1.8; }
+      .contributor-mark { min-width: 78px; padding-inline: 8px; font-size: 11px; }
       .intro-note { margin-top: 8px; font-size: 12px; }
       .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
       .stat { min-width: 0; padding: 8px; }
@@ -265,6 +279,13 @@
 
   <main class="shell">
     <section class="page-view" id="home-view">
+      <aside class="contributor-callout" aria-label="دعوة مدفوعة للمساهمة في التوثيق">
+        <div class="contributor-copy">
+          <h2>قبل ان يختفي المكان ساعدنا في توثيق حكايته</h2>
+          <p>نبحث عن مساهم في التوثيق <strong>مدفوع الأجر</strong></p>
+        </div>
+        <a class="contributor-mark" href="https://t.me/Arshefastetan" target="_blank" rel="noopener noreferrer" aria-label="تواصل معنا عبر تيليجرام مع @Arshefastetan">تواصل معنا</a>
+      </aside>
       <div class="intro-row">
         <div class="intro-copy">
           <div class="section-kicker">FIELD NOTES / 01</div>
@@ -716,6 +737,7 @@ body: "الوصف الكامل والتفصيلي"
     const provinceFilter = document.querySelector("#province-filter");
     const modal = document.querySelector("#article-modal");
     let activeArticleId = null;
+    let modalReturnScrollY = 0;
     let galleryTimer = null;
     let directoryLevel = "governorates";
     let selectedGovernorate = "";
@@ -785,6 +807,7 @@ body: "الوصف الكامل والتفصيلي"
     }
 
     function openArticle(article) {
+      modalReturnScrollY = window.scrollY;
       activeArticleId = article.id;
       window.clearInterval(galleryTimer);
       const mediaContainer = document.querySelector("#modal-media-container");
@@ -875,8 +898,9 @@ body: "الوصف الكامل والتفصيلي"
       document.body.style.overflow = "";
       if (activeArticleId) {
         const card = document.querySelector(`[data-article-id="${CSS.escape(activeArticleId)}"]`);
-        if (card) card.focus();
+        if (card) card.focus({ preventScroll: true });
       }
+      window.scrollTo(0, modalReturnScrollY);
     }
 
     function renderCards() {
